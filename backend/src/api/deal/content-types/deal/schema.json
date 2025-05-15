@@ -1,0 +1,58 @@
+{
+  "kind": "collectionType",
+  "collectionName": "deals",
+  "info": {
+    "singularName": "deal",
+    "pluralName": "deals",
+    "displayName": "Deal",
+    "description": "Sales Deals"
+  },
+  "options": {
+    "draftAndPublish": false
+  },
+  "attributes": {
+    "title": {
+      "type": "string",
+      "required": true
+    },
+    "value": {
+      "type": "decimal",
+      "required": true
+    },
+    "stage": {
+      "type": "enumeration",
+      "enum": [
+        "survey",
+        "quote",
+        "negotiation",
+        "waiting_payment",
+        "closed",
+        "lost"
+      ],
+      "default": "survey",
+      "required": true
+    },
+    "contractUrl": {
+      "type": "string"
+    },
+    "customer": {
+      "type": "relation",
+      "relation": "manyToOne",
+      "target": "api::customer.customer",
+      "inversedBy": "deals"
+    },
+    "assignedTo": {
+      "type": "relation",
+      "relation": "manyToOne",
+      "target": "plugin::users-permissions.user"
+    },
+    "contracts": {
+      "type": "relation",
+      "relation": "oneToMany",
+      "target": "api::contract.contract",
+      "mappedBy": "deal"
+    }
+  }
+}
+
+{"kind":"collectionType","collectionName":"deals","info":{"singularName":"deal","pluralName":"deals","displayName":"Deal"},"attributes":{"title":{"type":"string","required":true},"value":{"type":"decimal"},"stage":{"type":"enumeration","enum":["new","qualified","proposal","negotiation","won","lost"]}}}

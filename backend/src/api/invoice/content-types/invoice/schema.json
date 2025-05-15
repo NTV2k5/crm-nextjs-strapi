@@ -1,0 +1,76 @@
+{
+  "kind": "collectionType",
+  "collectionName": "invoices",
+  "info": {
+    "singularName": "invoice",
+    "pluralName": "invoices",
+    "displayName": "Invoice",
+    "description": "Customer Invoices"
+  },
+  "options": {
+    "draftAndPublish": false
+  },
+  "attributes": {
+    "orderCode": {
+      "type": "string",
+      "required": true,
+      "unique": true
+    },
+    "amount": {
+      "type": "decimal",
+      "required": true
+    },
+    "description": {
+      "type": "string"
+    },
+    "customerName": {
+      "type": "string",
+      "required": true
+    },
+    "customerEmail": {
+      "type": "string",
+      "required": true
+    },
+    "items": {
+      "type": "json",
+      "required": true
+    },
+    "status": {
+      "type": "enumeration",
+      "enum": [
+        "pending",
+        "paid"
+      ],
+      "default": "pending",
+      "required": true
+    },
+    "paidAt": {
+      "type": "datetime"
+    },
+    "sePayTransactionId": {
+      "type": "string"
+    },
+    "sePayReferenceCode": {
+      "type": "string"
+    },
+    "sePayGateway": {
+      "type": "string"
+    },
+    "paidAmount": {
+      "type": "decimal"
+    },
+    "customer": {
+      "type": "relation",
+      "relation": "manyToOne",
+      "target": "api::customer.customer",
+      "inversedBy": "invoices"
+    },
+    "deal": {
+      "type": "relation",
+      "relation": "manyToOne",
+      "target": "api::deal.deal"
+    }
+  }
+}
+
+{"kind":"collectionType","collectionName":"invoices","info":{"singularName":"invoice","pluralName":"invoices","displayName":"Invoice"},"attributes":{"code":{"type":"string","required":true,"unique":true},"amount":{"type":"decimal"},"paidAmount":{"type":"decimal"},"status":{"type":"enumeration","enum":["pending","paid","overdue","cancelled"]},"customer":{"type":"relation","relation":"manyToOne","target":"api::customer.customer"}}}
