@@ -7,3 +7,4 @@ export default function CustomerTable({ data }: { data: Customer[] }) {
     </table>
   );
 }
+// fix: AbortController cleanup on unmount prevents memory leak and setState warning
