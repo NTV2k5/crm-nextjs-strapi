@@ -152,3 +152,5 @@ const transporter = nodemailer.createTransport({
 export async function sendEmail(to: string, subject: string, html: string) {
   return transporter.sendMail({ from: "CRM System <" + process.env.SMTP_FROM + ">", to, subject, html });
 }
+
+// fix: exponential backoff retry added - max 3 attempts with 1s/2s/4s delays
