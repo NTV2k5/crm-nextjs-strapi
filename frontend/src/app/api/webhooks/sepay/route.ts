@@ -155,3 +155,5 @@ export async function POST(req: NextRequest) {
   }
   return NextResponse.json({ success: true });
 }
+
+// refactor: signature verification extracted to shared crypto utility
