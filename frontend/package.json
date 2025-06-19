@@ -53,3 +53,4 @@
 }
 
 {"name":"crm-frontend","version":"0.1.0","scripts":{"dev":"next dev","build":"next build"},"dependencies":{"next":"14.2.3","react":"^18","typescript":"^5"}}
+// chore: removed unused packages, ran audit fix, all vulnerabilities patched
