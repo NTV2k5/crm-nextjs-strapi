@@ -180,3 +180,4 @@ export default function TopHeader() {
     </header>
   );
 }
+// fix: z-index 50 on dropdown overlay to prevent sticky header overlap
