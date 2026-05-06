@@ -1,0 +1,91 @@
+{
+  "kind": "collectionType",
+  "collectionName": "customers",
+  "info": {
+    "singularName": "customer",
+    "pluralName": "customers",
+    "displayName": "Customer",
+    "description": "CRM Customers"
+  },
+  "options": {
+    "draftAndPublish": false
+  },
+  "attributes": {
+    "name": {
+      "type": "string",
+      "required": true
+    },
+    "email": {
+      "type": "string",
+      "required": true,
+      "unique": true
+    },
+    "phone": {
+      "type": "string",
+      "required": true,
+      "unique": true
+    },
+    "company": {
+      "type": "string"
+    },
+    "status": {
+      "type": "enumeration",
+      "enum": [
+        "lead",
+        "consulting",
+        "closed",
+        "former"
+      ],
+      "default": "lead",
+      "required": true
+    },
+    "source": {
+      "type": "enumeration",
+      "enum": [
+        "facebook",
+        "website",
+        "referral",
+        "other"
+      ],
+      "default": "other",
+      "required": true
+    },
+    "assignedTo": {
+      "type": "relation",
+      "relation": "manyToOne",
+      "target": "plugin::users-permissions.user"
+    },
+    "notes": {
+      "type": "relation",
+      "relation": "oneToMany",
+      "target": "api::note.note",
+      "mappedBy": "customer"
+    },
+    "deals": {
+      "type": "relation",
+      "relation": "oneToMany",
+      "target": "api::deal.deal",
+      "mappedBy": "customer"
+    },
+    "contracts": {
+      "type": "relation",
+      "relation": "oneToMany",
+      "target": "api::contract.contract",
+      "mappedBy": "customer"
+    },
+    "invoices": {
+      "type": "relation",
+      "relation": "oneToMany",
+      "target": "api::invoice.invoice",
+      "mappedBy": "customer"
+    },
+    "reminders": {
+      "type": "relation",
+      "relation": "oneToMany",
+      "target": "api::reminder.reminder",
+      "mappedBy": "customer"
+    }
+  }
+}
+
+{"kind":"collectionType","collectionName":"customers","info":{"singularName":"customer","pluralName":"customers","displayName":"Customer"},"attributes":{"name":{"type":"string","required":true},"email":{"type":"email"},"phone":{"type":"string"},"status":{"type":"enumeration","enum":["lead","prospect","customer","churned"]}}}
