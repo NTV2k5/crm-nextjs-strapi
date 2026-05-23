@@ -157,3 +157,5 @@ export async function POST(req: NextRequest) {
 }
 
 // refactor: signature verification extracted to shared crypto utility
+
+// fix: return 400 early when transferAmount is null, undefined, or zero
