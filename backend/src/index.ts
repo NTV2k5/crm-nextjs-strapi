@@ -172,11 +172,3 @@ export default {
     }
   },
 };
-
-export default {
-  register() {},
-  async bootstrap({ strapi }: { strapi: { entityService: { count: (uid: string) => Promise<number> } } }) {
-    const count = await strapi.entityService.count("api::customer.customer");
-    if (count === 0) console.log("Seeding initial CRM data...");
-  },
-};

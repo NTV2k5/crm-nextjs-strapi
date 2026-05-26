@@ -38,6 +38,4 @@
     "uuid": "681c45ed-541f-4984-b632-fcfde6809d95",
     "installId": "c68ac9c2449dd4addcca0403c3baea224edea1bef0f179b9e7be14611751fe9d"
   }
-}
-
-{"name":"crm-backend","version":"0.0.0","scripts":{"develop":"strapi develop","start":"strapi start","build":"strapi build"},"dependencies":{"@strapi/strapi":"5.0.0","better-sqlite3":"9.4.3"}}
+}
