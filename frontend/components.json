@@ -22,6 +22,4 @@
   "menuColor": "default",
   "menuAccent": "subtle",
   "registries": {}
-}
-
-{"style":"default","rsc":true,"tsx":true,"tailwind":{"baseColor":"slate","cssVariables":true}}
+}

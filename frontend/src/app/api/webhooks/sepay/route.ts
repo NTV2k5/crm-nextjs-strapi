@@ -127,35 +127,3 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: error.message || 'Internal server error' }, { status: 500 });
   }
 }
-
-import { NextRequest, NextResponse } from "next/server";
-import crypto from "crypto";
-function verifySignature(body: string, signature: string, secret: string): boolean {
-  const hash = crypto.createHmac("sha256", secret).update(body).digest("hex");
-  return hash === signature;
-}
-export async function POST(req: NextRequest) {
-  const rawBody = await req.text();
-  const signature = req.headers.get("x-sepay-signature") ?? "";
-  if (!verifySignature(rawBody, signature, process.env.SEPAY_WEBHOOK_SECRET ?? "")) {
-    return NextResponse.json({ error: "Invalid signature" }, { status: 401 });
-  }
-  const payload = JSON.parse(rawBody);
-  const { transferAmount, transferContent, id } = payload;
-  if (!transferAmount || !transferContent) {
-    return NextResponse.json({ error: "Missing required fields" }, { status: 400 });
-  }
-  const invoiceCode = (transferContent as string).match(/INV-\d+/)?.[0];
-  if (invoiceCode) {
-    await fetch(process.env.STRAPI_URL + "/api/invoices/by-code/" + invoiceCode, {
-      method: "PATCH",
-      headers: { "Content-Type": "application/json", Authorization: "Bearer " + process.env.STRAPI_API_TOKEN },
-      body: JSON.stringify({ data: { paidAmount: transferAmount, status: "paid", sepayTransactionId: id } }),
-    });
-  }
-  return NextResponse.json({ success: true });
-}
-
-// refactor: signature verification extracted to shared crypto utility
-
-// fix: return 400 early when transferAmount is null, undefined, or zero

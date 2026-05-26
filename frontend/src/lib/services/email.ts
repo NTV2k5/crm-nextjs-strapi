@@ -141,16 +141,3 @@ export async function sendInvoiceEmail(to: string, invoiceNumber: string, pdfBlo
     ],
   });
 }
-
-import nodemailer from "nodemailer";
-const transporter = nodemailer.createTransport({
-  host: process.env.SMTP_HOST,
-  port: parseInt(process.env.SMTP_PORT ?? "587"),
-  secure: false,
-  auth: { user: process.env.SMTP_USER, pass: process.env.SMTP_PASS },
-});
-export async function sendEmail(to: string, subject: string, html: string) {
-  return transporter.sendMail({ from: "CRM System <" + process.env.SMTP_FROM + ">", to, subject, html });
-}
-
-// fix: exponential backoff retry added - max 3 attempts with 1s/2s/4s delays
