@@ -1,0 +1,65 @@
+{
+  "kind": "collectionType",
+  "collectionName": "reminders",
+  "info": {
+    "singularName": "reminder",
+    "pluralName": "reminders",
+    "displayName": "Reminder",
+    "description": "Tasks Reminders"
+  },
+  "options": {
+    "draftAndPublish": false
+  },
+  "attributes": {
+    "title": {
+      "type": "string",
+      "required": true
+    },
+    "dueDate": {
+      "type": "datetime",
+      "required": true
+    },
+    "status": {
+      "type": "enumeration",
+      "enum": [
+        "pending",
+        "completed"
+      ],
+      "default": "pending",
+      "required": true
+    },
+    "customer": {
+      "type": "relation",
+      "relation": "manyToOne",
+      "target": "api::customer.customer",
+      "inversedBy": "reminders"
+    },
+    "assignedTo": {
+      "type": "relation",
+      "relation": "manyToOne",
+      "target": "plugin::users-permissions.user"
+    },
+    "priority": {
+      "type": "enumeration",
+      "enum": [
+        "high",
+        "medium",
+        "low"
+      ],
+      "default": "medium"
+    },
+    "type": {
+      "type": "enumeration",
+      "enum": [
+        "meeting",
+        "call",
+        "task",
+        "payment"
+      ],
+      "default": "task"
+    },
+    "description": {
+      "type": "text"
+    }
+  }
+}

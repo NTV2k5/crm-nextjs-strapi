@@ -1,0 +1,37 @@
+{
+  "kind": "collectionType",
+  "collectionName": "audit_logs",
+  "info": {
+    "singularName": "audit-log",
+    "pluralName": "audit-logs",
+    "displayName": "Audit Log",
+    "description": "CRM Activity Logs"
+  },
+  "options": {
+    "draftAndPublish": false
+  },
+  "attributes": {
+    "action": {
+      "type": "string",
+      "required": true
+    },
+    "entityId": {
+      "type": "string"
+    },
+    "entityName": {
+      "type": "string"
+    },
+    "performedByEmail": {
+      "type": "string"
+    },
+    "performedByUid": {
+      "type": "string"
+    },
+    "details": {
+      "type": "text"
+    },
+    "metadata": {
+      "type": "json"
+    }
+  }
+}

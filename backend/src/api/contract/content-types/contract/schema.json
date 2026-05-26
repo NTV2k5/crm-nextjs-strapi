@@ -1,0 +1,82 @@
+{
+  "kind": "collectionType",
+  "collectionName": "contracts",
+  "info": {
+    "singularName": "contract",
+    "pluralName": "contracts",
+    "displayName": "Contract",
+    "description": "Legal Contracts"
+  },
+  "options": {
+    "draftAndPublish": false
+  },
+  "attributes": {
+    "contractNumber": {
+      "type": "string",
+      "required": true
+    },
+    "title": {
+      "type": "string",
+      "required": true
+    },
+    "value": {
+      "type": "decimal",
+      "required": true
+    },
+    "startDate": {
+      "type": "date"
+    },
+    "endDate": {
+      "type": "date"
+    },
+    "signedDate": {
+      "type": "date"
+    },
+    "status": {
+      "type": "enumeration",
+      "enum": [
+        "draft",
+        "pending_signature",
+        "active",
+        "expired",
+        "terminated"
+      ],
+      "default": "draft",
+      "required": true
+    },
+    "fileUrl": {
+      "type": "string"
+    },
+    "fileName": {
+      "type": "string"
+    },
+    "notes": {
+      "type": "text"
+    },
+    "content": {
+      "type": "text"
+    },
+    "createdBy": {
+      "type": "relation",
+      "relation": "manyToOne",
+      "target": "plugin::users-permissions.user"
+    },
+    "assignedTo": {
+      "type": "relation",
+      "relation": "manyToOne",
+      "target": "plugin::users-permissions.user"
+    },
+    "customer": {
+      "type": "relation",
+      "relation": "manyToOne",
+      "target": "api::customer.customer",
+      "inversedBy": "contracts"
+    },
+    "deal": {
+      "type": "relation",
+      "relation": "manyToOne",
+      "target": "api::deal.deal",
+      "inversedBy": "contracts"
+    }
+  }
+}

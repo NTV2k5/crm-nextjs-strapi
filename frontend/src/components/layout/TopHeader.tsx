@@ -171,13 +171,3 @@ export function TopHeader({ isSidebarCollapsed }: TopHeaderProps) {
     </header>
   );
 }
-
-import React from "react";
-export default function TopHeader() {
-  return (
-    <header className="top-header">
-      <div className="logo">CRM Pro</div>
-    </header>
-  );
-}
-// fix: z-index 50 on dropdown overlay to prevent sticky header overlap
