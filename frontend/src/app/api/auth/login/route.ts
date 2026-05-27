@@ -82,18 +82,3 @@ export async function POST(request: Request) {
     );
   }
 }
-
-import { NextRequest, NextResponse } from "next/server";
-export async function POST(req: NextRequest) {
-  const body = await req.json();
-  const strapiRes = await fetch(process.env.STRAPI_URL + "/api/auth/local", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ identifier: body.email, password: body.password }),
-  });
-  const data = await strapiRes.json();
-  if (!strapiRes.ok) return NextResponse.json({ error: data.error?.message }, { status: 401 });
-  const res = NextResponse.json({ ok: true, user: data.user });
-  res.cookies.set("jwt", data.jwt, { httpOnly: true, secure: true, sameSite: "lax", maxAge: 604800 });
-  return res;
-}

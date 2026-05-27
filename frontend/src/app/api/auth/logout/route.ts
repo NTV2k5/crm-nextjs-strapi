@@ -25,10 +25,3 @@ export async function GET() {
     return NextResponse.json({ error: 'Logout failed' }, { status: 500 });
   }
 }
-
-import { NextResponse } from "next/server";
-export async function POST() {
-  const res = NextResponse.json({ ok: true });
-  res.cookies.delete("jwt");
-  return res;
-}

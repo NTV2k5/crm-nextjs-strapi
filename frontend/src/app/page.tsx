@@ -389,8 +389,4 @@ export default function Dashboard() {
       />
     </div>
   );
-}
-
-export default function HomePage() {
-  return <main><h1>CRM Dashboard</h1></main>;
-}
+}

@@ -98,8 +98,4 @@ export function Sidebar({ isCollapsed = false, toggleSidebar }: SidebarProps) {
       )}
     </aside>
   );
-}
-
-export default function Sidebar() {
-  return <aside className="sidebar"><nav>Menu</nav></aside>;
-}
+}
