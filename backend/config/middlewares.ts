@@ -14,11 +14,3 @@ const config: Core.Config.Middlewares = [
 ];
 
 export default config;
-
-export default [
-  "strapi::logger",
-  "strapi::errors",
-  { name: "strapi::cors", config: { origin: ["http://localhost:3000"] } },
-  "strapi::body",
-  "strapi::public",
-];

@@ -86,6 +86,4 @@
       "mappedBy": "customer"
     }
   }
-}
-
-{"kind":"collectionType","collectionName":"customers","info":{"singularName":"customer","pluralName":"customers","displayName":"Customer"},"attributes":{"name":{"type":"string","required":true},"email":{"type":"email"},"phone":{"type":"string"},"status":{"type":"enumeration","enum":["lead","prospect","customer","churned"]}}}
+}

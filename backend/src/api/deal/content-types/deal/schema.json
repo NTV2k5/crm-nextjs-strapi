@@ -53,6 +53,4 @@
       "mappedBy": "deal"
     }
   }
-}
-
-{"kind":"collectionType","collectionName":"deals","info":{"singularName":"deal","pluralName":"deals","displayName":"Deal"},"attributes":{"title":{"type":"string","required":true},"value":{"type":"decimal"},"stage":{"type":"enumeration","enum":["new","qualified","proposal","negotiation","won","lost"]}}}
+}

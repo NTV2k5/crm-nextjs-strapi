@@ -27,6 +27,4 @@
       "target": "plugin::users-permissions.user"
     }
   }
-}
-
-{"kind":"collectionType","collectionName":"notes","info":{"singularName":"note","pluralName":"notes","displayName":"Note"},"attributes":{"content":{"type":"text","required":true}}}
+}

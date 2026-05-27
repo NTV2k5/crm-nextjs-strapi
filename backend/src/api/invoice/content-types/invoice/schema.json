@@ -71,6 +71,4 @@
       "target": "api::deal.deal"
     }
   }
-}
-
-{"kind":"collectionType","collectionName":"invoices","info":{"singularName":"invoice","pluralName":"invoices","displayName":"Invoice"},"attributes":{"code":{"type":"string","required":true,"unique":true},"amount":{"type":"decimal"},"paidAmount":{"type":"decimal"},"status":{"type":"enumeration","enum":["pending","paid","overdue","cancelled"]},"customer":{"type":"relation","relation":"manyToOne","target":"api::customer.customer"}}}
+}
