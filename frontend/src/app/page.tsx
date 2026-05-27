@@ -51,6 +51,8 @@ export default function Dashboard() {
   const [statusFilter, setStatusFilter] = useState('all');
   const [sourceFilter] = useState('all');
   const [companyFilter] = useState('all');
+  const [currentPage, setCurrentPage] = useState(1);
+  const ITEMS_PER_PAGE = 10;
 
   // Stats calculation
   const stats = useMemo(() => {
@@ -128,6 +130,17 @@ export default function Dashboard() {
     const matchesCompanyFilter = companyFilter === 'all' || c.company === companyFilter;
     return matchesStatus && matchesSource && matchesCompanyFilter;
   });
+
+  // Reset page when search or filters change
+  useMemo(() => {
+    setCurrentPage(1);
+  }, [searchQuery, statusFilter, sourceFilter, companyFilter]);
+
+  const totalPages = Math.max(1, Math.ceil(filteredCustomers.length / ITEMS_PER_PAGE));
+  const paginatedCustomers = filteredCustomers.slice(
+    (currentPage - 1) * ITEMS_PER_PAGE,
+    currentPage * ITEMS_PER_PAGE
+  );
 
   const getStatusBadge = (status: string) => {
     const styles: Record<string, string> = {
@@ -282,7 +295,7 @@ export default function Dashboard() {
                       </TableRow>
                     </TableHeader>
                     <TableBody>
-                      {filteredCustomers.map((customer) => (
+                      {paginatedCustomers.map((customer) => (
                         <TableRow key={customer.id} className="border-border hover:bg-muted/30 transition-all cursor-pointer group" onClick={() => router.push(`/customers/${customer.documentId || customer.id}`)}>
                           <TableCell>
                             <div className="flex items-center gap-3">
@@ -327,6 +340,38 @@ export default function Dashboard() {
                 </div>
               )}
             </CardContent>
+            
+            {/* Pagination Controls */}
+            {!loading && filteredCustomers.length > 0 && (
+              <div className="flex flex-col sm:flex-row items-center justify-between gap-4 px-6 py-4 border-t border-border bg-muted/20">
+                <div className="text-xs sm:text-sm text-muted-foreground font-medium text-center sm:text-left">
+                  Hiển thị <span className="text-foreground font-bold">{(currentPage - 1) * ITEMS_PER_PAGE + 1}</span> đến <span className="text-foreground font-bold">{Math.min(currentPage * ITEMS_PER_PAGE, filteredCustomers.length)}</span> trong số <span className="text-foreground font-bold">{filteredCustomers.length}</span> khách hàng
+                </div>
+                <div className="flex items-center gap-2 w-full sm:w-auto justify-center">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+                    disabled={currentPage === 1}
+                    className="h-8 rounded-lg text-[10px] sm:text-xs font-bold px-3"
+                  >
+                    Trang trước
+                  </Button>
+                  <div className="text-[10px] sm:text-xs font-bold px-3 py-1 bg-background border border-border rounded-lg whitespace-nowrap">
+                    {currentPage} / {totalPages}
+                  </div>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
+                    disabled={currentPage === totalPages}
+                    className="h-8 rounded-lg text-[10px] sm:text-xs font-bold px-3"
+                  >
+                    Trang sau
+                  </Button>
+                </div>
+              </div>
+            )}
           </Card>
         </div>
 
@@ -357,7 +402,7 @@ export default function Dashboard() {
                   const dueDateObj = reminder.dueDate ? new Date(reminder.dueDate) : null;
                   const isOverdue = dueDateObj ? dueDateObj < new Date() : false;
                   return (
-                    <Link key={reminder.id} href={`/customers/${reminder.customer?.documentId || reminder.customer?.id}`} className="block group">
+                    <Link key={reminder.id} href={`/customers/${reminder.customer?.documentId || reminder.customer?.id}?tab=reminders`} className="block group">
                       <div className="p-3 rounded-xl border border-border bg-background/50 hover:border-amber-500/30 hover:bg-amber-500/5 transition-all">
                         <div className="flex items-start justify-between gap-2">
                           <div className="min-w-0">

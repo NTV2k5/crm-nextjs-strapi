@@ -10,6 +10,7 @@ export function AppLayout({ children }: { children: ReactNode }) {
   const isAuthPage = pathname === '/login' || pathname === '/forgot-password';
 
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
   // Auto-collapse sidebar on smaller desktop screens (optional enhancement)
   useEffect(() => {
@@ -31,9 +32,17 @@ export function AppLayout({ children }: { children: ReactNode }) {
 
   return (
     <>
-      <Sidebar isCollapsed={isSidebarCollapsed} toggleSidebar={() => setIsSidebarCollapsed(!isSidebarCollapsed)} />
+      <Sidebar 
+        isCollapsed={isSidebarCollapsed} 
+        toggleSidebar={() => setIsSidebarCollapsed(!isSidebarCollapsed)} 
+        isMobileMenuOpen={isMobileMenuOpen}
+        closeMobileMenu={() => setIsMobileMenuOpen(false)}
+      />
       <div className={`flex-1 flex flex-col min-w-0 transition-all duration-300 ${isSidebarCollapsed ? 'lg:pl-20' : 'lg:pl-64'}`}>
-        <TopHeader isSidebarCollapsed={isSidebarCollapsed} />
+        <TopHeader 
+          isSidebarCollapsed={isSidebarCollapsed} 
+          toggleSidebar={() => setIsMobileMenuOpen(!isMobileMenuOpen)} 
+        />
         <main className="flex-1">
           {children}
         </main>

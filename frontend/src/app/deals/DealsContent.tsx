@@ -10,7 +10,8 @@ import { useTheme } from '@/contexts/ThemeContext';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent } from '@/components/ui/card';
-import { Loader2, Plus, ArrowLeft, GripVertical, FileText, Sun, Moon, Briefcase, Phone, Search } from 'lucide-react';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { Loader2, Plus, ArrowLeft, GripVertical, FileText, Sun, Moon, Briefcase, Phone, Search, LayoutGrid, List } from 'lucide-react';
 import { strapiFetch } from '@/lib/strapi';
 import { toast } from 'sonner';
 import Link from 'next/link';
@@ -41,6 +42,7 @@ export default function DealsContent() {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingDeal, setEditingDeal] = useState<Deal | undefined>();
   const [searchQuery, setSearchQuery] = useState('');
+  const [viewMode, setViewMode] = useState<'kanban' | 'table'>('kanban');
 
   const filteredDeals = deals.filter(d => {
     const q = searchQuery.toLowerCase();
@@ -175,8 +177,26 @@ export default function DealsContent() {
               <p className="text-muted-foreground font-medium">Quản lý quy trình bán hàng và tối ưu hóa doanh số.</p>
             </div>
           </div>
-          <div className="flex items-center gap-3">
-             <Button onClick={handleAddNew} className="rounded-xl h-12 px-6 btn-gradient font-bold shadow-lg shadow-primary/20">
+          <div className="flex flex-col sm:flex-row items-center gap-3 w-full sm:w-auto">
+             <div className="flex items-center bg-muted/50 p-1 rounded-xl border border-border w-full sm:w-auto">
+               <Button 
+                 variant={viewMode === 'kanban' ? 'default' : 'ghost'} 
+                 size="sm" 
+                 onClick={() => setViewMode('kanban')}
+                 className="rounded-lg h-10 px-4 font-medium flex-1 sm:flex-none shadow-sm"
+               >
+                 <LayoutGrid className="h-4 w-4 mr-2" /> Board
+               </Button>
+               <Button 
+                 variant={viewMode === 'table' ? 'default' : 'ghost'} 
+                 size="sm" 
+                 onClick={() => setViewMode('table')}
+                 className="rounded-lg h-10 px-4 font-medium flex-1 sm:flex-none"
+               >
+                 <List className="h-4 w-4 mr-2" /> List
+               </Button>
+             </div>
+             <Button onClick={handleAddNew} className="w-full sm:w-auto rounded-xl h-12 px-6 btn-gradient font-bold shadow-lg shadow-primary/20">
                 <Plus className="mr-2 h-5 w-5" /> Tạo Deal mới
              </Button>
           </div>
@@ -196,126 +216,213 @@ export default function DealsContent() {
           </div>
         </div>
 
-        <DragDropContext onDragEnd={onDragEnd}>
-          <div className="flex gap-6 overflow-x-auto pb-8 h-[calc(100vh-340px)] snap-x scrollbar-thin scrollbar-thumb-border">
-            {STAGES.map(stage => {
-              const stageDeals = filteredDeals.filter(d => d.stage === stage.id);
-              const totalValue = stageDeals.reduce((sum, d) => sum + d.value, 0);
+        {viewMode === 'kanban' ? (
+          <DragDropContext onDragEnd={onDragEnd}>
+            <div className="flex gap-6 overflow-x-auto pb-8 h-[calc(100vh-340px)] snap-x scrollbar-thin scrollbar-thumb-border">
+              {STAGES.map(stage => {
+                const stageDeals = filteredDeals.filter(d => d.stage === stage.id);
+                const totalValue = stageDeals.reduce((sum, d) => sum + d.value, 0);
 
-              return (
-                <div key={stage.id} className="flex-shrink-0 w-80 flex flex-col bg-muted/30 rounded-3xl snap-start border border-border h-full overflow-hidden">
-                  <div className="p-5 border-b border-border bg-card/50 backdrop-blur-sm flex justify-between items-center">
-                    <div className="flex items-center gap-2">
-                      <div className={cn("w-2 h-2 rounded-full", stage.color)} />
-                      <h3 className="font-bold text-sm uppercase tracking-wider">{stage.label}</h3>
-                    </div>
-                    <div className="text-right">
-                      <div className="text-[10px] font-bold text-muted-foreground uppercase">{stageDeals.length} Deals</div>
-                      <div className="text-xs font-extrabold text-primary">{formatCurrency(totalValue)}</div>
-                    </div>
-                  </div>
-
-                  <Droppable droppableId={stage.id}>
-                    {(provided, snapshot) => (
-                      <div
-                        {...provided.droppableProps}
-                        ref={provided.innerRef}
-                        className={cn(
-                          "flex-1 overflow-y-auto p-4 space-y-4 transition-colors",
-                          snapshot.isDraggingOver ? 'bg-primary/5' : ''
-                        )}
-                      >
-                        {stageDeals.map((deal, index) => {
-                          const dealDocId = deal.documentId || deal.id;
-                          return (
-                            <Draggable key={dealDocId} draggableId={dealDocId} index={index}>
-                              {(provided, snapshot) => (
-                                <Card
-                                  ref={provided.innerRef}
-                                  {...provided.draggableProps}
-                                  {...provided.dragHandleProps}
-                                  onClick={() => handleEdit(deal)}
-                                  className={cn(
-                                    "cursor-pointer transition-all hover:scale-[1.02] border-border relative group overflow-hidden",
-                                    snapshot.isDragging ? 'shadow-2xl ring-2 ring-primary border-primary/50 rotate-2' : 'enterprise-shadow bg-card hover:bg-card/80'
-                                  )}
-                                >
-                                  <CardContent className="p-4 space-y-3">
-                                    <div className="flex justify-between items-start">
-                                      <div className="flex items-center gap-2 min-w-0">
-                                        <Briefcase className="h-3.5 w-3.5 text-muted-foreground flex-shrink-0" />
-                                        <h4 className="text-sm font-bold text-foreground truncate">{deal.title}</h4>
-                                      </div>
-                                      <GripVertical className="h-4 w-4 text-muted-foreground/30 opacity-0 group-hover:opacity-100 transition-opacity" />
-                                    </div>
-                                    
-                                    <div className="space-y-1">
-                                      <div className="flex items-center justify-between">
-                                        <p className="text-[11px] font-bold text-muted-foreground uppercase tracking-tight truncate">{deal.customer?.name || 'Cá nhân'}</p>
-                                        {(() => {
-                                          const customer = customers.find(c => c.documentId === deal.customer?.documentId || String(c.id) === String(deal.customer?.id));
-                                          if (customer?.phone) {
-                                            return (
-                                              <Button 
-                                                variant="ghost" 
-                                                size="icon" 
-                                                className="h-6 w-6 text-green-600 hover:text-green-700 hover:bg-green-100 rounded-full"
-                                                onClick={(e) => {
-                                                  e.stopPropagation();
-                                                  setCallData({
-                                                    phoneNumber: customer.phone!,
-                                                    customerName: customer.name,
-                                                    dealId: String(dealDocId),
-                                                    customerId: customer.documentId || customer.id
-                                                  });
-                                                  setIsCallModalOpen(true);
-                                                }}
-                                              >
-                                                <Phone className="h-3 w-3" />
-                                              </Button>
-                                            );
-                                          }
-                                          return null;
-                                        })()}
-                                      </div>
-                                      <div className="flex items-center text-primary font-extrabold text-sm">
-                                        {formatCurrency(deal.value)}
-                                      </div>
-                                    </div>
-
-                                    <div className="flex items-center justify-between pt-3 border-t border-border/50">
-                                      <div className="flex -space-x-2">
-                                         <div className="w-6 h-6 rounded-full border-2 border-background bg-primary/10 flex items-center justify-center text-[10px] font-bold">
-                                           {(deal.customer?.name || 'C').charAt(0)}
-                                         </div>
-                                      </div>
-                                      {deal.contractUrl && (
-                                        <div className="flex items-center gap-1 px-2 py-0.5 rounded-full bg-blue-500/10 text-blue-600 border border-blue-500/20">
-                                          <FileText className="h-3 w-3" />
-                                          <span className="text-[10px] font-bold uppercase">Hợp đồng</span>
-                                        </div>
-                                      )}
-                                    </div>
-                                  </CardContent>
-                                </Card>
-                              )}
-                            </Draggable>
-                          );
-                        })}
-                        {provided.placeholder}
-                        {stageDeals.length === 0 && !snapshot.isDraggingOver && (
-                          <div className="h-24 border-2 border-dashed border-border/50 rounded-2xl flex items-center justify-center text-[10px] text-muted-foreground font-bold uppercase tracking-widest text-center px-4">
-                            Kéo Deal vào đây
-                          </div>
-                        )}
+                return (
+                  <div key={stage.id} className="flex-shrink-0 w-80 flex flex-col bg-muted/30 rounded-3xl snap-start border border-border h-full overflow-hidden">
+                    <div className="p-5 border-b border-border bg-card/50 backdrop-blur-sm flex justify-between items-center">
+                      <div className="flex items-center gap-2">
+                        <div className={cn("w-2 h-2 rounded-full", stage.color)} />
+                        <h3 className="font-bold text-sm uppercase tracking-wider">{stage.label}</h3>
                       </div>
-                    )}
-                  </Droppable>
-                </div>
-              );
-            })}
+                      <div className="text-right">
+                        <div className="text-[10px] font-bold text-muted-foreground uppercase">{stageDeals.length} Deals</div>
+                        <div className="text-xs font-extrabold text-primary">{formatCurrency(totalValue)}</div>
+                      </div>
+                    </div>
+
+                    <Droppable droppableId={stage.id}>
+                      {(provided, snapshot) => (
+                        <div
+                          {...provided.droppableProps}
+                          ref={provided.innerRef}
+                          className={cn(
+                            "flex-1 overflow-y-auto p-4 space-y-4 transition-colors",
+                            snapshot.isDraggingOver ? 'bg-primary/5' : ''
+                          )}
+                        >
+                          {stageDeals.map((deal, index) => {
+                            const dealDocId = deal.documentId || deal.id;
+                            return (
+                              <Draggable key={dealDocId} draggableId={dealDocId} index={index}>
+                                {(provided, snapshot) => (
+                                  <Card
+                                    ref={provided.innerRef}
+                                    {...provided.draggableProps}
+                                    {...provided.dragHandleProps}
+                                    onClick={() => handleEdit(deal)}
+                                    className={cn(
+                                      "cursor-pointer transition-all hover:scale-[1.02] border-border relative group overflow-hidden",
+                                      snapshot.isDragging ? 'shadow-2xl ring-2 ring-primary border-primary/50 rotate-2' : 'enterprise-shadow bg-card hover:bg-card/80'
+                                    )}
+                                  >
+                                    <CardContent className="p-4 space-y-3">
+                                      <div className="flex justify-between items-start">
+                                        <div className="flex items-center gap-2 min-w-0">
+                                          <Briefcase className="h-3.5 w-3.5 text-muted-foreground flex-shrink-0" />
+                                          <h4 className="text-sm font-bold text-foreground truncate">{deal.title}</h4>
+                                        </div>
+                                        <GripVertical className="h-4 w-4 text-muted-foreground/30 opacity-0 group-hover:opacity-100 transition-opacity" />
+                                      </div>
+                                      
+                                      <div className="space-y-1">
+                                        <div className="flex items-center justify-between">
+                                          <p className="text-[11px] font-bold text-muted-foreground uppercase tracking-tight truncate">{deal.customer?.name || 'Cá nhân'}</p>
+                                          {(() => {
+                                            const customer = customers.find(c => c.documentId === deal.customer?.documentId || String(c.id) === String(deal.customer?.id));
+                                            if (customer?.phone) {
+                                              return (
+                                                <Button 
+                                                  variant="ghost" 
+                                                  size="icon" 
+                                                  className="h-6 w-6 text-green-600 hover:text-green-700 hover:bg-green-100 rounded-full"
+                                                  onClick={(e) => {
+                                                    e.stopPropagation();
+                                                    setCallData({
+                                                      phoneNumber: customer.phone!,
+                                                      customerName: customer.name,
+                                                      dealId: String(dealDocId),
+                                                      customerId: customer.documentId || customer.id
+                                                    });
+                                                    setIsCallModalOpen(true);
+                                                  }}
+                                                >
+                                                  <Phone className="h-3 w-3" />
+                                                </Button>
+                                              );
+                                            }
+                                            return null;
+                                          })()}
+                                        </div>
+                                        <div className="flex items-center text-primary font-extrabold text-sm">
+                                          {formatCurrency(deal.value)}
+                                        </div>
+                                      </div>
+
+                                      <div className="flex items-center justify-between pt-3 border-t border-border/50">
+                                        <div className="flex -space-x-2">
+                                           <div className="w-6 h-6 rounded-full border-2 border-background bg-primary/10 flex items-center justify-center text-[10px] font-bold">
+                                             {(deal.customer?.name || 'C').charAt(0)}
+                                           </div>
+                                        </div>
+                                        {deal.contractUrl && (
+                                          <div className="flex items-center gap-1 px-2 py-0.5 rounded-full bg-blue-500/10 text-blue-600 border border-blue-500/20">
+                                            <FileText className="h-3 w-3" />
+                                            <span className="text-[10px] font-bold uppercase">Hợp đồng</span>
+                                          </div>
+                                        )}
+                                      </div>
+                                    </CardContent>
+                                  </Card>
+                                )}
+                              </Draggable>
+                            );
+                          })}
+                          {provided.placeholder}
+                          {stageDeals.length === 0 && !snapshot.isDraggingOver && (
+                            <div className="h-24 border-2 border-dashed border-border/50 rounded-2xl flex items-center justify-center text-[10px] text-muted-foreground font-bold uppercase tracking-widest text-center px-4">
+                              Kéo Deal vào đây
+                            </div>
+                          )}
+                        </div>
+                      )}
+                    </Droppable>
+                  </div>
+                );
+              })}
+            </div>
+          </DragDropContext>
+        ) : (
+          <div className="bg-card rounded-2xl border border-border overflow-hidden enterprise-shadow">
+            <div className="overflow-x-auto">
+              <Table>
+                <TableHeader className="bg-muted/50">
+                  <TableRow>
+                    <TableHead className="py-4">Tên Deal</TableHead>
+                    <TableHead className="py-4">Khách hàng</TableHead>
+                    <TableHead className="py-4">Giá trị</TableHead>
+                    <TableHead className="py-4">Trạng thái</TableHead>
+                    <TableHead className="py-4 text-right">Hành động</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {filteredDeals.length === 0 ? (
+                    <TableRow>
+                      <TableCell colSpan={5} className="text-center py-8 text-muted-foreground">Không tìm thấy deal nào.</TableCell>
+                    </TableRow>
+                  ) : (
+                    filteredDeals.map((deal) => {
+                      const stageObj = STAGES.find(s => s.id === deal.stage);
+                      return (
+                        <TableRow key={deal.id || deal.documentId} className="cursor-pointer hover:bg-muted/30 transition-colors" onClick={() => handleEdit(deal)}>
+                          <TableCell className="font-bold py-4">
+                            <div className="flex items-center gap-3">
+                              <div className="p-2 bg-primary/10 rounded-lg">
+                                <Briefcase className="h-4 w-4 text-primary" />
+                              </div>
+                              {deal.title}
+                            </div>
+                          </TableCell>
+                          <TableCell className="font-medium text-muted-foreground py-4">
+                            {deal.customer?.name || 'Cá nhân'}
+                          </TableCell>
+                          <TableCell className="font-extrabold text-primary py-4">
+                            {formatCurrency(deal.value)}
+                          </TableCell>
+                          <TableCell className="py-4">
+                            <span className={cn("px-3 py-1.5 rounded-full text-xs font-bold text-white shadow-sm inline-block", stageObj?.color || 'bg-gray-500')}>
+                              {stageObj?.label || deal.stage}
+                            </span>
+                          </TableCell>
+                          <TableCell className="py-4 text-right">
+                            <div className="flex items-center justify-end gap-2" onClick={e => e.stopPropagation()}>
+                              {(() => {
+                                const customer = customers.find(c => c.documentId === deal.customer?.documentId || String(c.id) === String(deal.customer?.id));
+                                if (customer?.phone) {
+                                  return (
+                                    <Button 
+                                      variant="outline" 
+                                      size="sm" 
+                                      className="h-8 rounded-lg text-green-600 border-green-200 hover:bg-green-50"
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        setCallData({
+                                          phoneNumber: customer.phone!,
+                                          customerName: customer.name,
+                                          dealId: String(deal.documentId || deal.id),
+                                          customerId: customer.documentId || customer.id
+                                        });
+                                        setIsCallModalOpen(true);
+                                      }}
+                                    >
+                                      <Phone className="h-3.5 w-3.5 mr-2" /> Gọi điện
+                                    </Button>
+                                  );
+                                }
+                                return null;
+                              })()}
+                              {deal.contractUrl && (
+                                <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-blue-500/10 text-blue-600 border border-blue-500/20">
+                                  <FileText className="h-3.5 w-3.5" />
+                                  <span className="text-xs font-bold uppercase">Hợp đồng</span>
+                                </div>
+                              )}
+                            </div>
+                          </TableCell>
+                        </TableRow>
+                      )
+                    })
+                  )}
+                </TableBody>
+              </Table>
+            </div>
           </div>
-        </DragDropContext>
+        )}
       </div>
       
       <DealModal 

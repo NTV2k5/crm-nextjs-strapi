@@ -10,12 +10,14 @@ import { Input } from '@/components/ui/input';
 import { useState, useEffect, useRef } from 'react';
 import { strapiFetch, unwrap } from '@/lib/strapi';
 import Link from 'next/link';
+import { NotificationBell } from './NotificationBell';
 
 interface TopHeaderProps {
   isSidebarCollapsed?: boolean;
+  toggleSidebar?: () => void;
 }
 
-export function TopHeader({ isSidebarCollapsed }: TopHeaderProps) {
+export function TopHeader({ isSidebarCollapsed, toggleSidebar }: TopHeaderProps) {
   const { userData, signOut: logoutUser, loading } = useAuth();
   const { theme, toggleTheme } = useTheme();
 
@@ -80,10 +82,10 @@ export function TopHeader({ isSidebarCollapsed }: TopHeaderProps) {
     <header className="sticky top-0 z-40 w-full h-16 bg-card/80 backdrop-blur-xl border-b border-border flex items-center justify-between px-4 sm:px-6 lg:px-10 lg:pl-10 lg:ml-0 transition-all shadow-sm">
       {/* Mobile Menu Button - visible only on small screens */}
       <div className="lg:hidden flex items-center">
-        <Button variant="ghost" size="icon" className="mr-2">
+        <Button variant="ghost" size="icon" className="mr-2" onClick={toggleSidebar}>
           <Menu className="h-5 w-5" />
         </Button>
-        <span className="font-extrabold tracking-tight text-primary">CRM NEXT</span>
+        <Link href="/" className="font-extrabold tracking-tight text-primary">CRM NEXT</Link>
       </div>
 
       {/* Desktop Search & Actions */}
@@ -138,10 +140,7 @@ export function TopHeader({ isSidebarCollapsed }: TopHeaderProps) {
       </div>
 
       <div className="flex items-center gap-3 ml-auto">
-        <Button variant="outline" size="icon" className="rounded-xl h-10 w-10 bg-background shadow-sm border-border relative hidden sm:flex">
-          <Bell className="h-4 w-4 text-muted-foreground" />
-          <span className="absolute top-2 right-2 w-2 h-2 bg-red-500 rounded-full border border-background"></span>
-        </Button>
+        <NotificationBell />
         
         <Button variant="outline" size="icon" onClick={toggleTheme} className="rounded-xl h-10 w-10 bg-background shadow-sm border-border">
           {theme === 'dark' ? <Sun className="h-4 w-4 text-muted-foreground" /> : <Moon className="h-4 w-4 text-muted-foreground" />}

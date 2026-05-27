@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState, useMemo, useTransition, useCallback } from 'react';
-import { useParams, useRouter } from 'next/navigation';
+import { useParams, useRouter, useSearchParams } from 'next/navigation';
 import { useAuth } from '@/contexts/AuthContext';
 import { useTheme } from '@/contexts/ThemeContext';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -51,6 +51,8 @@ export default function CustomerProfile() {
   const params = useParams();
   const id = params?.id as string; // Customer documentId
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const defaultTab = searchParams.get('tab') || 'notes';
 
   const { userData } = useAuth();
   const { theme, toggleTheme } = useTheme();
@@ -347,7 +349,7 @@ export default function CustomerProfile() {
 
           {/* Main Content */}
           <div className="lg:col-span-2 space-y-8">
-            <Tabs defaultValue="notes" className="w-full flex flex-col gap-6">
+            <Tabs defaultValue={defaultTab} className="w-full flex flex-col gap-6">
               <TabsList className="grid w-full grid-cols-3 bg-muted/60 p-1.5 rounded-2xl max-w-[450px] border border-border shadow-sm mb-6">
                 <TabsTrigger value="notes" className="rounded-xl font-bold text-xs uppercase tracking-tight py-2.5 transition-all">
                   <MessageSquare className="h-3.5 w-3.5 mr-2 opacity-70" /> Nhật ký
@@ -539,7 +541,7 @@ export default function CustomerProfile() {
                       <Plus className="mr-1.5 h-4 w-4" /> Thêm hợp đồng
                     </Button>
                   </CardHeader>
-                  <CardContent className="p-6 space-y-6 flex-1">
+                  <CardContent className="p-6 space-y-6 flex-1 overflow-y-auto max-h-[500px] custom-scrollbar">
                     {contractsLoading ? (
                       <div className="flex h-48 items-center justify-center">
                         <Loader2 className="h-6 w-6 animate-spin text-primary" />
