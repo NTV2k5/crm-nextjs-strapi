@@ -116,7 +116,8 @@ export const BillingWorkflow = {
     const checkPayment = async () => {
       if (!running) return;
       try {
-        const res = await strapiFetch(`/invoices/${session.invoiceId}`);
+        // Add cache-busting param to prevent browser/Next.js from serving stale cached response
+        const res = await strapiFetch(`/invoices/${session.invoiceId}?_t=${Date.now()}`);
         const invoice = unwrap<any>(res);
 
         if (invoice && invoice.status === 'paid') {
@@ -156,7 +157,7 @@ export const BillingWorkflow = {
   /**
    * BƯỚC 3: Tạo PDF invoice và gửi email sau khi thanh toán xong.
    */
-  async finalizeInvoice(orderCode: string, details: BillingDetails) {
+  async finalizeInvoice(orderCode: string, details: BillingDetails, sendEmail = false) {
     const invoiceNumber = `INV-${orderCode}`;
     const now = new Date();
     const date = now.toLocaleDateString('vi-VN');
@@ -181,18 +182,21 @@ export const BillingWorkflow = {
       />
     ).toBlob();
 
-    const emailResult = await sendInvoiceEmail(
-      details.customerEmail,
-      invoiceNumber,
-      blob
-    );
+    let emailSent = false;
+    if (sendEmail) {
+      const emailResult = await sendInvoiceEmail(
+        details.customerEmail,
+        invoiceNumber,
+        blob
+      );
+      emailSent = emailResult.success;
+    }
 
     return {
       success: true,
       invoiceNumber,
       pdfBlob: blob,
-      emailSent: emailResult.success,
-      emailId: (emailResult as any).data?.id as string | undefined,
+      emailSent,
     };
   },
 };

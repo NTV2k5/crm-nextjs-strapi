@@ -17,13 +17,15 @@ interface BillingActionProps {
   dealId?: string;
   /** Số tiền thanh toán (VND) — lấy từ deal.value */
   amount?: number;
+  /** Callback khi thanh toán hoàn tất — parent nên refetch data */
+  onPaymentComplete?: () => void;
 }
 
 type Step = 'idle' | 'qr_shown' | 'paid' | 'finalizing' | 'done' | 'timeout';
 
 
 export const BillingAction: React.FC<BillingActionProps> = ({
-  customerName, customerEmail, dealId, dealTitle, amount,
+  customerName, customerEmail, dealId, dealTitle, amount, onPaymentComplete,
 }) => {
   const [loading,  setLoading]  = useState(false);
   const [step,     setStep]     = useState<Step>('idle');
@@ -80,17 +82,7 @@ export const BillingAction: React.FC<BillingActionProps> = ({
           if (countdownRef.current) clearInterval(countdownRef.current);
           toast.success('💰 Thanh toán thành công!');
 
-          // Cập nhật deal stage → closed
-          if (dealId) {
-            try {
-              await strapiFetch(`/deals/${dealId}`, {
-                method: 'PUT',
-                body: JSON.stringify({ data: { stage: 'closed' } }),
-              });
-            } catch (e) {
-              console.error('Không thể update deal stage:', e);
-            }
-          }
+          // Deal stage, email and contract are now safely handled by the SePay Webhook.
 
           // Tự động tạo invoice sau 1s
           setTimeout(() => handleFinalizeInvoice(result), 1000);
@@ -137,8 +129,11 @@ export const BillingAction: React.FC<BillingActionProps> = ({
         items: invoiceItems,
       });
 
-      toast.success(`Hóa đơn ${result.invoiceNumber} đã gửi email!`);
+      toast.success(`Hóa đơn ${result.invoiceNumber} đã xuất thành công! (Email được gửi tự động từ Server)`);
       setStep('done');
+
+      // Notify parent to refresh deal data (stage should now be 'closed')
+      onPaymentComplete?.();
 
       // Auto-download PDF
       const url  = URL.createObjectURL(result.pdfBlob);

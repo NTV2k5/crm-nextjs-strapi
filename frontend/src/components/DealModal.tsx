@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useActionState, useEffect } from 'react';
+import { useState, useActionState, useEffect, useCallback } from 'react';
 import {
   Dialog,
   DialogContent,
@@ -54,6 +54,29 @@ export function DealModal({ initialData, open, onOpenChange, trigger, refetch }:
       );
     }
   }, [open, initialData, userData]);
+
+  // Track deal stage in live state so it can update when payment webhook changes it
+  const [liveDealStage, setLiveDealStage] = useState(initialData?.stage || '');
+  useEffect(() => {
+    setLiveDealStage(initialData?.stage || '');
+  }, [initialData?.stage]);
+
+  // Callback when payment is complete — refetch deal from server to get updated stage
+  const handlePaymentComplete = useCallback(async () => {
+    try {
+      if (initialData?.documentId) {
+        const res = await strapiFetch(`/deals/${initialData.documentId}?_t=${Date.now()}`);
+        const updatedDeal = unwrap<any>(res);
+        if (updatedDeal?.stage) {
+          setLiveDealStage(updatedDeal.stage);
+        }
+      }
+    } catch (e) {
+      console.error('Failed to re-fetch deal after payment:', e);
+    }
+    // Also trigger parent list refresh
+    if (refetch) refetch();
+  }, [initialData?.documentId, refetch]);
   
   const [state, formAction, isPending] = useActionState(
     async (prevState: FormState, formData: FormData): Promise<FormState> => {
@@ -358,13 +381,14 @@ export function DealModal({ initialData, open, onOpenChange, trigger, refetch }:
           </div>
           
           <div className="flex flex-col-reverse sm:flex-row justify-end gap-3 pt-6 border-t border-border mt-2">
-            {initialData?.stage === 'waiting_payment' && selectedCustomer && (
+            {liveDealStage === 'waiting_payment' && selectedCustomer && initialData && (
               <BillingAction
                 customerName={selectedCustomer.name}
                 customerEmail={selectedCustomer.email}
                 dealId={initialData.documentId}
                 dealTitle={initialData.title}
                 amount={initialData.value}
+                onPaymentComplete={handlePaymentComplete}
               />
             )}
              <Button
