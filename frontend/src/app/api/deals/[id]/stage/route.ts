@@ -1,8 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
-export async function PATCH(req: NextRequest, { params }: { params: { id: string } }) {
+export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+  const { id } = await params;
   const { stage } = await req.json();
   const jwt = req.cookies.get("jwt")?.value;
-  const res = await fetch(process.env.STRAPI_URL + "/api/deals/" + params.id, {
+  const res = await fetch(process.env.STRAPI_URL + "/api/deals/" + id, {
     method: "PUT",
     headers: { "Content-Type": "application/json", Authorization: "Bearer " + jwt },
     body: JSON.stringify({ data: { stage } }),
