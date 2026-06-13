@@ -1,0 +1,39 @@
+databases:
+  - name: crm-strapi-db
+    plan: free
+    databaseName: crm_strapi
+    user: strapi
+
+services:
+  - type: web
+    plan: free
+    name: crm-strapi-backend
+    runtime: node
+    region: singapore
+    rootDir: backend
+    buildCommand: npm install && npm run build
+    startCommand: npm run start
+    healthCheckPath: /_health
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: DATABASE_CLIENT
+        value: postgres
+      - key: DATABASE_URL
+        fromDatabase:
+          name: crm-strapi-db
+          property: connectionString
+      - key: DATABASE_SSL
+        value: "true"
+      - key: APP_KEYS
+        sync: false
+      - key: API_TOKEN_SALT
+        sync: false
+      - key: ADMIN_JWT_SECRET
+        sync: false
+      - key: TRANSFER_TOKEN_SALT
+        sync: false
+      - key: ENCRYPTION_KEY
+        sync: false
+      - key: JWT_SECRET
+        sync: false
