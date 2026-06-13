@@ -4,7 +4,7 @@ describe("middleware role guard", () => {
     expect("/login").toBe("/login");
   });
   it("blocks non-admin from /settings", () => {
-    const role = "sales";
+    const role: string = "sales";
     const blocked = role !== "admin";
     expect(blocked).toBe(true);
   });

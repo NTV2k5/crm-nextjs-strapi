@@ -1,0 +1,110 @@
+@startuml CRM_UseCase_Sales
+!theme plain
+skinparam actorStyle awesome
+skinparam usecase {
+  BackgroundColor #E8F5E9
+  BorderColor #10B981
+  ArrowColor #64748B
+}
+
+title **USE CASE CHI TIẾT: SALES (Nhân viên bán hàng)**\n(Chỉ thao tác trên dữ liệu **được gán**)
+
+left to right direction
+
+actor "Sales" as Sales #MediumSeaGreen
+
+rectangle "HỆ THỐNG CRM" {
+
+  package "Xác thực" {
+    usecase "Đăng nhập\n(Email / Google)" as UC_Login
+    usecase "Đăng xuất" as UC_Logout
+    usecase "Đổi mật khẩu" as UC_ChangePass
+  }
+
+  package "Quản lý Khách hàng\n(Chỉ **assigned**)" #E8F5E9 {
+    usecase "Xem khách hàng\n**được gán**" as UC_ViewMy
+    usecase "Thêm khách hàng\n(tự gán cho mình)" as UC_AddCust
+    usecase "Sửa thông tin\nkhách hàng" as UC_EditCust
+    usecase "Tìm kiếm & Lọc" as UC_SearchCust
+    usecase "Xuất CSV" as UC_ExportCSV
+    usecase "Xem hồ sơ\nchi tiết" as UC_ViewProfile
+  }
+
+  package "Ghi chú & Lịch hẹn" {
+    usecase "Thêm ghi chú" as UC_AddNote
+    usecase "Xem lịch sử" as UC_ViewNotes
+    usecase "Tạo lịch hẹn" as UC_CreateReminder
+    usecase "Xem Calendar" as UC_ViewCalendar
+    usecase "Hoàn thành\nlịch hẹn" as UC_Complete
+    usecase "Nhận thông báo\nreal-time" as UC_Notif
+  }
+
+  package "Quản lý Deals\n(Chỉ **assigned**)" #E8F5E9 {
+    usecase "Xem Deals\n**được gán**\n(Table + Kanban)" as UC_ViewDeals
+    usecase "Tạo Deal mới" as UC_CreateDeal
+    usecase "Sửa Deal" as UC_EditDeal
+    usecase "Kéo thả cập nhật\nStage" as UC_DragDeal
+  }
+
+  package "Hợp đồng" {
+    usecase "Tạo hợp đồng" as UC_CreateContract
+    usecase "Sửa hợp đồng" as UC_EditContract
+    usecase "Upload file HĐ" as UC_UploadFile
+    usecase "In & Xuất PDF" as UC_PrintPDF
+  }
+
+  package "Hóa đơn & Thanh toán" {
+    usecase "Tạo hóa đơn" as UC_CreateInvoice
+    usecase "Thanh toán QR" as UC_PayQR
+  }
+
+  package "Dashboard" {
+    usecase "Dashboard cá nhân\n(Chỉ dữ liệu của mình)" as UC_Dashboard
+  }
+}
+
+Sales --> UC_Login
+Sales --> UC_Logout
+Sales --> UC_ChangePass
+Sales --> UC_ViewMy
+Sales --> UC_AddCust
+Sales --> UC_EditCust
+Sales --> UC_SearchCust
+Sales --> UC_ExportCSV
+Sales --> UC_ViewProfile
+Sales --> UC_AddNote
+Sales --> UC_ViewNotes
+Sales --> UC_CreateReminder
+Sales --> UC_ViewCalendar
+Sales --> UC_Complete
+Sales --> UC_Notif
+Sales --> UC_ViewDeals
+Sales --> UC_CreateDeal
+Sales --> UC_EditDeal
+Sales --> UC_DragDeal
+Sales --> UC_CreateContract
+Sales --> UC_EditContract
+Sales --> UC_UploadFile
+Sales --> UC_PrintPDF
+Sales --> UC_CreateInvoice
+Sales --> UC_PayQR
+Sales --> UC_Dashboard
+
+note right of Sales
+  **Sales KHÔNG có quyền:**
+  ✘ Xem dữ liệu của NV khác
+  ✘ Xoá khách hàng
+  ✘ Xoá Deal
+  ✘ Xoá hợp đồng
+  ✘ Import CSV
+  ✘ Quản lý người dùng
+  ✘ Báo cáo tổng hợp
+  ✘ Xem Audit Log
+end note
+
+note bottom of UC_ViewMy
+  Dữ liệu được lọc theo:
+  **filters[assignedTo][id][$eq]=userId**
+end note
+
+@enduml

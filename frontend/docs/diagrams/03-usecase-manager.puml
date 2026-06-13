@@ -1,0 +1,115 @@
+@startuml CRM_UseCase_Manager
+!theme plain
+skinparam actorStyle awesome
+skinparam usecase {
+  BackgroundColor #FFF8E1
+  BorderColor #F59E0B
+  ArrowColor #64748B
+}
+
+title **USE CASE CHI TIẾT: MANAGER (Quản lý bán hàng)**\n(Xem toàn bộ dữ liệu + quản lý team)
+
+left to right direction
+
+actor "Manager" as Manager #DarkOrange
+
+rectangle "HỆ THỐNG CRM" {
+
+  package "Xác thực" {
+    usecase "Đăng nhập\n(Email / Google)" as UC_Login
+    usecase "Đăng xuất" as UC_Logout
+    usecase "Đổi mật khẩu" as UC_ChangePass
+  }
+
+  package "Quản lý Khách hàng\n(Xem TẤT CẢ)" {
+    usecase "Xem TẤT CẢ\nkhách hàng" as UC_ViewAll
+    usecase "Thêm khách hàng" as UC_AddCust
+    usecase "Sửa khách hàng" as UC_EditCust
+    usecase "Xoá khách hàng" as UC_DelCust
+    usecase "Tìm kiếm & Lọc" as UC_SearchCust
+    usecase "Xuất CSV" as UC_ExportCSV
+    usecase "Xem hồ sơ chi tiết" as UC_ViewProfile
+  }
+
+  package "Ghi chú & Lịch hẹn" {
+    usecase "Thêm ghi chú" as UC_AddNote
+    usecase "Xem lịch sử" as UC_ViewNotes
+    usecase "Tạo lịch hẹn" as UC_CreateReminder
+    usecase "Xem Calendar" as UC_ViewCalendar
+    usecase "Hoàn thành lịch hẹn" as UC_Complete
+    usecase "Nhận thông báo\nreal-time" as UC_Notif
+  }
+
+  package "Quản lý Deals" {
+    usecase "Xem TẤT CẢ Deals\n(Table + Kanban)" as UC_ViewDeals
+    usecase "Tạo Deal" as UC_CreateDeal
+    usecase "Sửa Deal" as UC_EditDeal
+    usecase "Xoá Deal" as UC_DeleteDeal
+    usecase "Kéo thả cập nhật\nStage" as UC_DragDeal
+  }
+
+  package "Hợp đồng" {
+    usecase "Tạo hợp đồng" as UC_CreateContract
+    usecase "Sửa hợp đồng" as UC_EditContract
+    usecase "Upload file HĐ" as UC_UploadFile
+    usecase "In & Xuất PDF" as UC_PrintPDF
+  }
+
+  package "Hóa đơn & Thanh toán" {
+    usecase "Tạo hóa đơn" as UC_CreateInvoice
+    usecase "Thanh toán QR" as UC_PayQR
+  }
+
+  package "Báo cáo & Dashboard" {
+    usecase "Dashboard thống kê\n(Tất cả nhân viên)" as UC_Dashboard
+    usecase "Báo cáo doanh thu" as UC_Reports
+    usecase "Biểu đồ tương tác" as UC_Charts
+  }
+
+  package "Quản lý đội ngũ\n(Giới hạn)" #FFF3E0 {
+    usecase "Xem danh sách\nnhân sự" as UC_ViewUsers
+  }
+}
+
+Manager --> UC_Login
+Manager --> UC_Logout
+Manager --> UC_ChangePass
+Manager --> UC_ViewAll
+Manager --> UC_AddCust
+Manager --> UC_EditCust
+Manager --> UC_DelCust
+Manager --> UC_SearchCust
+Manager --> UC_ExportCSV
+Manager --> UC_ViewProfile
+Manager --> UC_AddNote
+Manager --> UC_ViewNotes
+Manager --> UC_CreateReminder
+Manager --> UC_ViewCalendar
+Manager --> UC_Complete
+Manager --> UC_Notif
+Manager --> UC_ViewDeals
+Manager --> UC_CreateDeal
+Manager --> UC_EditDeal
+Manager --> UC_DeleteDeal
+Manager --> UC_DragDeal
+Manager --> UC_CreateContract
+Manager --> UC_EditContract
+Manager --> UC_UploadFile
+Manager --> UC_PrintPDF
+Manager --> UC_CreateInvoice
+Manager --> UC_PayQR
+Manager --> UC_Dashboard
+Manager --> UC_Reports
+Manager --> UC_Charts
+Manager --> UC_ViewUsers
+
+note right of Manager
+  **Manager KHÔNG có quyền:**
+  ✘ Import CSV khách hàng
+  ✘ Xoá hợp đồng
+  ✘ Thêm/Sửa/Xoá người dùng
+  ✘ Phân quyền RBAC
+  ✘ Xem Audit Log
+end note
+
+@enduml

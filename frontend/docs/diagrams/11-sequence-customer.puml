@@ -1,0 +1,223 @@
+@startuml CRM_Sequence_Customer
+!theme plain
+skinparam sequence {
+  ArrowColor #3B82F6
+  ParticipantBorderColor #3B82F6
+  ParticipantBackgroundColor #EFF6FF
+}
+
+title **SƠ ĐỒ TUẦN TỰ CHI TIẾT: QUẢN LÝ KHÁCH HÀNG**\n(CRUD + Notes + Reminders + Import/Export)
+
+actor "Admin/Manager" as AdminMgr #FFEBEE
+actor "Sales" as Sales #E8F5E9
+participant "Dashboard\n/ CustomerProfile\n(React)" as FE
+participant "Next.js BFF\n/api/strapi/[...path]" as BFF
+participant "Strapi API\n(Port 1337)" as BE
+database "PostgreSQL" as DB
+
+== 1. Xem danh sách khách hàng (Role-based) ==
+
+AdminMgr -> FE : Truy cập Dashboard
+activate FE
+FE -> FE : useCustomers() →\nuseAuth() lấy userData
+alt userData.role === 'admin' || 'manager'
+  FE -> BFF : GET /customers?populate=*\n&sort=createdAt:desc
+  note right: Lấy TẤT CẢ khách hàng
+else userData.role === 'sales'
+  Sales -> FE : Truy cập Dashboard
+  FE -> BFF : GET /customers\n?filters[assignedTo][id][$eq]={userId}\n&populate=*&sort=createdAt:desc
+  note right: Chỉ lấy khách hàng\n**được gán**
+end
+activate BFF
+BFF -> BE : Forward with Bearer jwt
+activate BE
+BE -> DB : SELECT with filters
+activate DB
+DB --> BE : Results
+deactivate DB
+BE --> BFF : {data: [...]}
+deactivate BE
+BFF --> FE : Customer list
+deactivate BFF
+
+FE -> FE : setCustomers(data)\n→ Render Table\n→ Calculate stats
+FE --> AdminMgr : Bảng khách hàng + Stats cards
+deactivate FE
+
+== 2. Tìm kiếm & Lọc (Client-side) ==
+
+AdminMgr -> FE : Nhập từ khóa / Chọn filter
+activate FE
+FE -> FE : normalizeSearch(query)\n→ filteredCustomers.filter()\n→ Match: name, email, phone, company
+FE -> FE : Apply statusFilter\nApply sourceFilter\nPagination (10 items/page)
+FE --> AdminMgr : Kết quả lọc real-time\n(không gọi API)
+deactivate FE
+
+== 3. Thêm khách hàng mới ==
+
+AdminMgr -> FE : Click "Thêm khách hàng"\n→ CustomerModal opens
+activate FE
+AdminMgr -> FE : Điền: name, email, phone,\ncompany, status, source, assignedTo
+FE -> BFF : POST /customers\n{data: {name, email, phone, ...}}
+activate BFF
+BFF -> BE : POST /api/customers
+activate BE
+BE -> DB : INSERT INTO customers
+activate DB
+DB --> BE : New customer
+deactivate DB
+BE --> BFF : {data: customer}
+deactivate BE
+BFF --> FE : Success
+deactivate BFF
+
+FE -> BFF : POST /audit-logs\n{action: 'CREATE_CUSTOMER',\n entityId, entityName, ...}
+activate BFF
+BFF -> BE : POST /api/audit-logs
+activate BE
+BE -> DB : INSERT INTO audit_logs
+DB --> BE : OK
+deactivate BE
+BFF --> FE : Logged
+deactivate BFF
+
+FE -> FE : refetch() → Reload list
+FE --> AdminMgr : ✅ Toast "Thêm thành công"\nModal closes, list updated
+deactivate FE
+
+== 4. Chỉnh sửa khách hàng ==
+
+AdminMgr -> FE : Click "Chỉnh sửa" → Modal opens\nvới initialData
+activate FE
+AdminMgr -> FE : Sửa thông tin & Submit
+FE -> BFF : PUT /customers/{documentId}\n{data: {name, email, ...}}
+activate BFF
+BFF -> BE : PUT /api/customers/{documentId}
+activate BE
+BE -> DB : UPDATE customers\nWHERE document_id = ?
+activate DB
+DB --> BE : Updated
+deactivate DB
+BE --> BFF : {data: updated}
+deactivate BE
+BFF --> FE : Success
+deactivate BFF
+FE -> FE : refetch()
+FE --> AdminMgr : ✅ Thông tin đã cập nhật
+deactivate FE
+
+== 5. Xoá khách hàng (Admin/Manager only) ==
+
+AdminMgr -> FE : Click "Xoá" → confirm()
+activate FE
+FE -> BFF : DELETE /customers/{documentId}
+activate BFF
+BFF -> BE : DELETE /api/customers/{documentId}
+activate BE
+BE -> DB : DELETE FROM customers\nWHERE document_id = ?
+activate DB
+DB --> BE : Deleted
+deactivate DB
+BE --> BFF : OK
+deactivate BE
+BFF --> FE : Success
+deactivate BFF
+FE -> FE : refetch()
+FE --> AdminMgr : ✅ Toast "Đã xoá"
+deactivate FE
+
+== 6. Xem hồ sơ chi tiết & Thêm ghi chú ==
+
+AdminMgr -> FE : Click vào khách hàng\n→ /customers/{documentId}
+activate FE
+FE -> BFF : GET /customers/{id}?populate=*
+FE -> BFF : GET /notes?filters[customer][documentId][$eq]={id}&populate=*
+FE -> BFF : GET /reminders?filters[customer][documentId][$eq]={id}&populate=*
+activate BFF
+BFF -> BE : 3 parallel requests
+activate BE
+BE -> DB : 3 SELECT queries
+activate DB
+DB --> BE : Customer + Notes + Reminders
+deactivate DB
+BE --> BFF : All data
+deactivate BE
+BFF --> FE : Customer profile data
+deactivate BFF
+FE --> AdminMgr : Trang hồ sơ chi tiết\n(Tabs: Nhật ký, Lịch hẹn, Hợp đồng)
+deactivate FE
+
+AdminMgr -> FE : Nhập ghi chú → "Lưu nhật ký"
+activate FE
+FE -> BFF : POST /notes\n{data: {content, customer: id,\n createdBy: userId}}
+activate BFF
+BFF -> BE : POST /api/notes
+activate BE
+BE -> DB : INSERT INTO notes
+DB --> BE : Created
+deactivate BE
+BFF --> FE : OK
+deactivate BFF
+FE -> FE : fetchNotes() → Reload timeline
+FE --> AdminMgr : ✅ Ghi chú mới trong timeline
+deactivate FE
+
+== 7. Tạo & Hoàn thành lịch hẹn ==
+
+AdminMgr -> FE : Điền title, date, time\n→ "Đặt lịch ngay"
+activate FE
+FE -> BFF : POST /reminders\n{data: {title, dueDate,\n status: 'pending',\n customer: id,\n assignedTo: userId}}
+activate BFF
+BFF -> BE : POST /api/reminders
+activate BE
+BE -> DB : INSERT INTO reminders
+DB --> BE : Created
+deactivate BE
+BFF --> FE : OK
+deactivate BFF
+FE -> FE : fetchReminders()
+FE --> AdminMgr : ✅ Lịch hẹn mới được thêm
+deactivate FE
+
+AdminMgr -> FE : Click "Hoàn thành"
+activate FE
+FE -> BFF : PUT /reminders/{documentId}\n{data: {status: 'completed'}}
+activate BFF
+BFF -> BE : PUT /api/reminders/{documentId}
+activate BE
+BE -> DB : UPDATE reminders\nSET status = 'completed'
+DB --> BE : Updated
+deactivate BE
+BFF --> FE : OK
+deactivate BFF
+FE --> AdminMgr : ✅ Đánh dấu hoàn thành
+deactivate FE
+
+== 8. Import CSV (Admin only) ==
+
+AdminMgr -> FE : Click "Nhập liệu" → Upload CSV
+activate FE
+FE -> FE : Parse CSV → Extract rows
+loop Mỗi row trong CSV
+  FE -> BFF : POST /customers\n{data: row}
+  activate BFF
+  BFF -> BE : POST /api/customers
+  BE -> DB : INSERT INTO customers
+  DB --> BE : OK
+  BE --> BFF : Created
+  BFF --> FE : OK
+  deactivate BFF
+end
+FE -> FE : refetch()
+FE --> AdminMgr : ✅ Import hoàn tất\nToast thống kê số lượng
+deactivate FE
+
+== 9. Export CSV ==
+
+AdminMgr -> FE : Click nút Export
+activate FE
+FE -> FE : exportCustomersCsv(filteredCustomers)\n→ Generate CSV string\n→ Create Blob & download
+FE --> AdminMgr : ✅ File CSV được tải xuống
+deactivate FE
+
+@enduml

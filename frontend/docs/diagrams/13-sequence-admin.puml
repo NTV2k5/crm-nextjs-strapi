@@ -1,0 +1,179 @@
+@startuml CRM_Sequence_Admin
+!theme plain
+skinparam sequence {
+  ArrowColor #DC2626
+  ParticipantBorderColor #DC2626
+  ParticipantBackgroundColor #FEF2F2
+}
+
+title **SƠ ĐỒ TUẦN TỰ CHI TIẾT: QUẢN TRỊ HỆ THỐNG (Admin)**\n(User Management + RBAC + Audit Log)
+
+actor "Admin" as Admin
+participant "Admin Users Page\n/ TopHeader\n(React)" as FE
+participant "Next.js BFF\n/api/strapi/*" as BFF
+participant "Strapi API" as BE
+database "PostgreSQL" as DB
+
+== 1. Quản lý nhân sự (User Management) ==
+
+Admin -> FE : Truy cập /admin/users
+activate FE
+FE -> FE : Check role:\nuserData.role !== 'admin'\n&& userData.role !== 'manager'\n→ Block access
+
+FE -> FE : useUsers()
+FE -> BFF : GET /users?populate=role
+activate BFF
+BFF -> BE : GET /api/users?populate=role
+activate BE
+BE -> DB : SELECT * FROM up_users\nJOIN up_roles ON role_id
+activate DB
+DB --> BE : User list with roles
+deactivate DB
+BE --> BFF : {data: [...users]}
+deactivate BE
+BFF --> FE : Users with role info
+deactivate BFF
+FE --> Admin : Bảng nhân sự\n(tên, email, vai trò, ngày tham gia)
+deactivate FE
+
+== 2. Thêm nhân sự mới (Admin tạo tài khoản) ==
+
+Admin -> FE : Click "Thêm nhân sự mới"\n→ UserModal opens
+activate FE
+Admin -> FE : Điền: name, email,\npassword, role (Admin/Manager/Sales)
+FE -> BFF : POST /api/auth/register\n{name, email, password, role: 'sales'}
+activate BFF
+BFF -> BE : POST /api/auth/local/register\n{username: email, email, password}
+activate BE
+BE -> DB : INSERT INTO up_users\n(confirmed: true)
+activate DB
+DB --> BE : New user created
+deactivate DB
+BE --> BFF : {jwt, user}
+deactivate BE
+
+BFF -> BFF : Tìm role_id cho 'sales'
+BFF -> BE : GET /api/users-permissions/roles\n?filters[type][$eq]=sales
+activate BE
+BE -> DB : SELECT id FROM up_roles\nWHERE type = 'sales'
+DB --> BE : {id: 3}
+deactivate BE
+
+BFF -> BE : PUT /api/users/{userId}\n{role: 3, name: 'Nguyễn Văn A'}
+activate BE
+BE -> DB : UPDATE up_users\nSET role_id = 3, name = '...'
+DB --> BE : Updated
+deactivate BE
+
+BFF --> FE : {success: true, user: {...}}
+deactivate BFF
+FE -> FE : refetch()
+FE --> Admin : ✅ Toast "Thêm nhân sự thành công"\nBảng cập nhật
+deactivate FE
+
+== 3. Chỉnh sửa thông tin nhân sự ==
+
+Admin -> FE : Click Edit icon → UserModal\n(prefilled với initialData)
+activate FE
+Admin -> FE : Sửa name, email, role
+FE -> BFF : PUT /users/{userId}\n{name, email, role: newRoleId}
+activate BFF
+BFF -> BE : PUT /api/users/{userId}
+activate BE
+BE -> DB : UPDATE up_users\nSET name, email, role_id
+DB --> BE : Updated
+deactivate BE
+BFF --> FE : OK
+deactivate BFF
+FE -> FE : refetch()
+FE --> Admin : ✅ Thông tin đã cập nhật
+deactivate FE
+
+== 4. Xoá nhân sự ==
+
+Admin -> FE : Click Delete icon\n→ confirm("Bạn có chắc chắn?")
+activate FE
+note right of FE
+  Không thể xoá
+  chính mình
+  (userData.id !== u.id)
+end note
+FE -> BFF : DELETE /users/{userId}
+activate BFF
+BFF -> BE : DELETE /api/users/{userId}
+activate BE
+BE -> DB : DELETE FROM up_users\nWHERE id = ?
+activate DB
+DB --> BE : Deleted
+deactivate DB
+BE --> BFF : OK
+deactivate BE
+BFF --> FE : Success
+deactivate BFF
+FE -> FE : refetch()
+FE --> Admin : ✅ Toast "Đã xoá người dùng"
+deactivate FE
+
+== 5. Bootstrap phân quyền tự động (Server Startup) ==
+
+note over BE, DB
+  **Khi Strapi khởi động (bootstrap)**
+  Tự động tạo roles và permissions
+end note
+
+BE -> BE : bootstrap()
+activate BE
+BE -> DB : SELECT FROM up_roles\nWHERE type IN ('admin','manager','sales')
+activate DB
+DB --> BE : Existing roles
+deactivate DB
+
+loop Mỗi role cần tạo
+  alt Role chưa tồn tại
+    BE -> DB : INSERT INTO up_roles\n{name, type, description}
+    DB --> BE : Created
+  end
+end
+
+loop Mỗi role ['authenticated','admin','manager','sales']
+  loop Mỗi API ['customer','note','deal','reminder','contract','invoice','audit-log']
+    loop Mỗi action ['find','findOne','create','update','delete']
+      BE -> DB : SELECT FROM up_permissions\nWHERE action = ? AND role_id = ?
+      alt Permission chưa tồn tại
+        BE -> DB : INSERT INTO up_permissions\n{action, role_id}
+      end
+    end
+  end
+  note right of BE
+    Cũng cấp quyền:
+    + users.find/findOne/update/destroy
+    + roles.find/findOne
+    + upload.upload
+  end note
+end
+
+BE -> DB : SELECT FROM up_users\nWHERE confirmed = false
+BE -> DB : UPDATE up_users\nSET confirmed = true
+note right: Auto-confirm tất cả users
+deactivate BE
+
+== 6. Xem Audit Log ==
+
+Admin -> FE : Truy cập trang Audit Log
+activate FE
+FE -> BFF : GET /audit-logs\n?sort=createdAt:desc\n&pagination[pageSize]=50
+activate BFF
+BFF -> BE : GET /api/audit-logs?...
+activate BE
+BE -> DB : SELECT * FROM audit_logs\nORDER BY created_at DESC\nLIMIT 50
+activate DB
+DB --> BE : Audit log entries
+deactivate DB
+BE --> BFF : {data: [...logs]}
+deactivate BE
+BFF --> FE : Audit log list
+deactivate BFF
+FE --> Admin : Bảng nhật ký hệ thống\n(action, entity, user, time)
+deactivate FE
+
+@enduml

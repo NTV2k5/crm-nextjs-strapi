@@ -1,0 +1,159 @@
+@startuml CRM_Sequence_Auth
+!theme plain
+skinparam sequence {
+  ArrowColor #DC2626
+  ParticipantBorderColor #DC2626
+  ParticipantBackgroundColor #FEF2F2
+}
+
+title **SƠ ĐỒ TUẦN TỰ CHI TIẾT: XÁC THỰC & PHÂN QUYỀN**
+
+actor "User" as User
+participant "Login Page\n(Next.js)" as LoginPage
+participant "AuthContext\n(React Context)" as AuthCtx
+participant "API Route\n/api/auth/*" as AuthAPI
+participant "Strapi\n/api/auth/local" as StrapiAuth
+database "PostgreSQL" as DB
+
+== 1. Đăng nhập bằng Email/Password ==
+
+User -> LoginPage : Nhập email, password
+activate LoginPage
+LoginPage -> AuthCtx : login(email, password)
+activate AuthCtx
+AuthCtx -> AuthAPI : POST /api/auth/login\n{email, password}
+activate AuthAPI
+AuthAPI -> StrapiAuth : POST /api/auth/local\n{identifier: email, password}
+activate StrapiAuth
+StrapiAuth -> DB : SELECT * FROM up_users\nWHERE email = ?\nJOIN up_roles
+activate DB
+DB --> StrapiAuth : User + Role data
+deactivate DB
+
+alt Thành công
+  StrapiAuth --> AuthAPI : {jwt, user: {id, username, email}}
+  AuthAPI -> AuthAPI : Fetch role details\nGET /api/users/{id}?populate=role
+  AuthAPI -> AuthAPI : Set cookie('jwt', token)\nSet cookie('role', roleType)\nHttpOnly, Secure
+  AuthAPI --> AuthCtx : {user: {id, role, name, email}}
+  AuthCtx -> AuthCtx : setUser(data)\nsetUserData({id, role, name, email})
+  AuthCtx --> LoginPage : Success
+  LoginPage -> LoginPage : router.push('/')
+  LoginPage --> User : ✅ Dashboard (theo role)
+else Thất bại (sai password / tài khoản bị khóa)
+  StrapiAuth --> AuthAPI : 400 Error
+  AuthAPI --> AuthCtx : {error: "Đăng nhập thất bại"}
+  AuthCtx --> LoginPage : throw Error
+  LoginPage --> User : ❌ Toast error message
+end
+
+deactivate StrapiAuth
+deactivate AuthAPI
+deactivate AuthCtx
+deactivate LoginPage
+
+== 2. Đăng nhập Google OAuth ==
+
+User -> LoginPage : Click "Đăng nhập Google"
+activate LoginPage
+LoginPage -> AuthCtx : signInWithGoogle()
+activate AuthCtx
+AuthCtx -> AuthCtx : window.location.href =\nstrapi/api/connect/google
+AuthCtx --> User : Redirect to Google OAuth
+deactivate AuthCtx
+deactivate LoginPage
+
+User -> StrapiAuth : Google OAuth callback
+activate StrapiAuth
+StrapiAuth -> DB : UPSERT user from Google profile
+activate DB
+DB --> StrapiAuth : User record
+deactivate DB
+StrapiAuth --> AuthAPI : GET /api/auth/google/callback\n{access_token}
+activate AuthAPI
+AuthAPI -> AuthAPI : Exchange token → Set cookies
+AuthAPI --> User : Redirect to Dashboard
+deactivate AuthAPI
+deactivate StrapiAuth
+
+== 3. Kiểm tra phiên (Session Check) ==
+
+User -> LoginPage : Truy cập bất kỳ trang nào
+activate LoginPage
+LoginPage -> AuthCtx : useEffect → checkSession()
+activate AuthCtx
+AuthCtx -> AuthAPI : GET /api/auth/me
+activate AuthAPI
+AuthAPI -> AuthAPI : Read jwt from cookie
+alt Cookie hợp lệ
+  AuthAPI -> StrapiAuth : GET /api/users/me?populate=role\nAuthorization: Bearer jwt
+  activate StrapiAuth
+  StrapiAuth -> DB : Verify token → Get user
+  activate DB
+  DB --> StrapiAuth : User data
+  deactivate DB
+  StrapiAuth --> AuthAPI : User profile + role
+  deactivate StrapiAuth
+  AuthAPI --> AuthCtx : {user: {id, role, name, email}}
+  AuthCtx -> AuthCtx : setUserData({...})
+  AuthCtx --> LoginPage : Authenticated ✅
+else Cookie thiếu / hết hạn
+  AuthAPI --> AuthCtx : {user: null}
+  AuthCtx -> AuthCtx : setUser(null)\nsetUserData(null)
+  AuthCtx --> LoginPage : Not authenticated
+  LoginPage -> LoginPage : Redirect to /login
+  LoginPage --> User : ❌ Quay lại trang đăng nhập
+end
+deactivate AuthAPI
+deactivate AuthCtx
+deactivate LoginPage
+
+== 4. Đăng ký tài khoản (Admin creates) ==
+
+User -> LoginPage : Điền form đăng ký\n(name, email, password, role)
+activate LoginPage
+LoginPage -> AuthCtx : registerUser(name, email, password, role)
+activate AuthCtx
+AuthCtx -> AuthAPI : POST /api/auth/register\n{name, email, password, role}
+activate AuthAPI
+AuthAPI -> StrapiAuth : POST /api/auth/local/register\n{username, email, password}
+activate StrapiAuth
+StrapiAuth -> DB : INSERT INTO up_users
+activate DB
+DB --> StrapiAuth : New user
+deactivate DB
+StrapiAuth --> AuthAPI : {jwt, user}
+deactivate StrapiAuth
+AuthAPI -> StrapiAuth : PUT /api/users/{id}\n{role: roleId, name: name}
+activate StrapiAuth
+StrapiAuth -> DB : UPDATE up_users SET role_id
+activate DB
+DB --> StrapiAuth : Updated
+deactivate DB
+StrapiAuth --> AuthAPI : OK
+deactivate StrapiAuth
+AuthAPI --> AuthCtx : {success: true}
+deactivate AuthAPI
+AuthCtx --> LoginPage : Registered
+LoginPage --> User : ✅ Toast "Đăng ký thành công"
+deactivate AuthCtx
+deactivate LoginPage
+
+== 5. Đăng xuất ==
+
+User -> LoginPage : Click "Đăng xuất"
+activate LoginPage
+LoginPage -> AuthCtx : signOut()
+activate AuthCtx
+AuthCtx -> AuthAPI : POST /api/auth/logout
+activate AuthAPI
+AuthAPI -> AuthAPI : Clear cookies\n(jwt, role)
+AuthAPI --> AuthCtx : OK
+deactivate AuthAPI
+AuthCtx -> AuthCtx : setUser(null)\nsetUserData(null)
+AuthCtx --> LoginPage : Logged out
+LoginPage -> LoginPage : router.push('/login')
+LoginPage --> User : ✅ Quay lại trang Login
+deactivate AuthCtx
+deactivate LoginPage
+
+@enduml

@@ -16,6 +16,3 @@ const eslintConfig = defineConfig([
 ]);
 
 export default eslintConfig;
-
-// ESLint flat config for Next.js 14
-export default [{ rules: { "no-unused-vars": "warn" } }];

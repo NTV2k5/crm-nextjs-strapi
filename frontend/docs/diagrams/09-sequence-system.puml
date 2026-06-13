@@ -1,0 +1,204 @@
+@startuml CRM_Sequence_System
+!theme plain
+skinparam sequence {
+  ArrowColor #3B82F6
+  LifeLineBorderColor #64748B
+  LifeLineBackgroundColor #F8FAFC
+  ParticipantBorderColor #3B82F6
+  ParticipantBackgroundColor #EFF6FF
+  GroupBorderColor #CBD5E1
+  DividerBorderColor #94A3B8
+}
+
+title **HỆ THỐNG CRM - SƠ ĐỒ TUẦN TỰ TOÀN HỆ THỐNG**\n(Tổng quan luồng hoạt động chính)
+
+actor "User\n(Admin/Manager/Sales)" as User #F0F4FF
+participant "Next.js\nFrontend\n(Port 3000)" as FE #EFF6FF
+participant "Next.js\nAPI Routes\n(BFF Layer)" as BFF #FEF3C7
+participant "Strapi v5\nBackend\n(Port 1337)" as BE #F0FDF4
+database "PostgreSQL\nDatabase" as DB #F5F3FF
+participant "SePay\nGateway" as SePay #FEF2F2
+
+' ===== 1. AUTHENTICATION FLOW =====
+== 1. Xác thực (Authentication) ==
+
+User -> FE : Mở trang Login
+activate FE
+FE -> BFF : POST /api/auth/login\n{email, password}
+activate BFF
+BFF -> BE : POST /api/auth/local\n{identifier, password}
+activate BE
+BE -> DB : SELECT FROM up_users\nWHERE email = ?
+activate DB
+DB --> BE : User record + role
+deactivate DB
+BE --> BFF : {jwt, user}
+deactivate BE
+BFF -> BFF : Set HttpOnly Cookie\n(jwt token)
+BFF --> FE : {user: {id, role, name, email}}
+deactivate BFF
+FE -> FE : setUser(data)\nsetUserData(data)\nRedirect to Dashboard
+FE --> User : Dashboard loaded
+deactivate FE
+
+' ===== 2. CUSTOMER MANAGEMENT FLOW =====
+== 2. Quản lý khách hàng ==
+
+User -> FE : Truy cập Dashboard
+activate FE
+FE -> BFF : GET /api/strapi/customers\n?populate=*&sort=createdAt:desc
+activate BFF
+note right of BFF
+  **Role-based filtering:**
+  Admin/Manager: GET all
+  Sales: GET ?filters[assignedTo][id][$eq]=userId
+end note
+BFF -> BE : GET /api/customers?...\nAuthorization: Bearer jwt
+activate BE
+BE -> DB : SELECT * FROM customers\nJOIN up_users ON assigned_to_id\nORDER BY created_at DESC
+activate DB
+DB --> BE : Customer records
+deactivate DB
+BE --> BFF : {data: [...customers]}
+deactivate BE
+BFF --> FE : Unwrapped customer list
+deactivate BFF
+FE --> User : Hiển thị bảng khách hàng
+deactivate FE
+
+User -> FE : Click "Thêm khách hàng"
+activate FE
+FE -> FE : Open CustomerModal
+User -> FE : Điền form & Submit
+FE -> BFF : POST /api/strapi/customers\n{data: {name, email, phone, ...}}
+activate BFF
+BFF -> BE : POST /api/customers
+activate BE
+BE -> DB : INSERT INTO customers
+activate DB
+DB --> BE : New customer record
+deactivate DB
+BE --> BFF : {data: customer}
+deactivate BE
+BFF --> FE : Success response
+deactivate BFF
+FE -> FE : refetch() — reload list
+FE --> User : Toast: "Thêm thành công"
+deactivate FE
+
+' ===== 3. DEAL & KANBAN FLOW =====
+== 3. Quản lý Deals (Kanban) ==
+
+User -> FE : Truy cập trang Deals
+activate FE
+FE -> BFF : GET /api/strapi/deals\n?populate=*
+activate BFF
+BFF -> BE : GET /api/deals?populate=*
+activate BE
+BE -> DB : SELECT * FROM deals\nJOIN customers, up_users
+activate DB
+DB --> BE : Deal records
+deactivate DB
+BE --> BFF : {data: [...deals]}
+deactivate BE
+BFF --> FE : Deals list
+deactivate BFF
+FE --> User : Kanban Board / Table View
+deactivate FE
+
+User -> FE : Kéo thả Deal\n(Change stage)
+activate FE
+FE -> BFF : PATCH /api/deals/{id}/stage\n{stage: "negotiation"}
+activate BFF
+BFF -> BE : PUT /api/deals/{id}\n{data: {stage: "negotiation"}}
+activate BE
+BE -> DB : UPDATE deals SET stage = ?\nWHERE document_id = ?
+activate DB
+DB --> BE : Updated
+deactivate DB
+BE --> BFF : Success
+deactivate BE
+BFF --> FE : Updated deal
+deactivate BFF
+FE -> FE : Update Kanban UI
+FE --> User : Card di chuyển sang cột mới
+deactivate FE
+
+' ===== 4. PAYMENT FLOW =====
+== 4. Thanh toán tự động (SePay Webhook) ==
+
+User -> FE : Tạo Invoice → Click "Thanh toán QR"
+activate FE
+FE -> FE : useSePayPayment.startPayment()\nGenerate QR URL\nStart countdown + polling
+FE --> User : Hiển thị QR Code\n& countdown timer
+deactivate FE
+
+User -> SePay : Quét QR & Chuyển khoản\n(Qua app ngân hàng)
+activate SePay
+SePay -> BFF : POST /api/webhooks/sepay\n{id, gateway, transferAmount,\n content: "TT DH12345",\n referenceCode}
+activate BFF
+BFF -> BFF : Verify SEPAY_WEBHOOK_KEY\nExtract orderCode from content
+BFF -> BE : GET /api/invoices\n?filters[orderCode][$eq]=DH12345
+activate BE
+BE -> DB : SELECT * FROM invoices\nWHERE order_code = 'DH12345'
+activate DB
+DB --> BE : Invoice record
+deactivate DB
+BE --> BFF : Found invoice
+deactivate BE
+
+BFF -> BE : PUT /api/invoices/{id}\n{status: 'paid', paidAt, sePayTransactionId, ...}
+activate BE
+BE -> DB : UPDATE invoices SET status='paid'\nWHERE document_id = ?
+activate DB
+DB --> BE : Updated
+deactivate DB
+BE --> BFF : Invoice updated
+deactivate BE
+
+BFF -> BE : PUT /api/deals/{dealId}\n{data: {stage: 'closed'}}
+activate BE
+BE -> DB : UPDATE deals SET stage='closed'\nWHERE document_id = ?
+activate DB
+DB --> BE : Updated
+deactivate DB
+BE --> BFF : Deal auto-closed
+deactivate BE
+
+BFF --> SePay : 200 OK\n{success: true}
+deactivate BFF
+deactivate SePay
+
+FE -> BFF : [Polling] GET /api/strapi/invoices/{id}
+activate FE
+activate BFF
+BFF -> BE : GET /api/invoices/{id}
+activate BE
+BE --> BFF : {status: 'paid'}
+deactivate BE
+BFF --> FE : Invoice is PAID
+deactivate BFF
+FE -> FE : setState('paid')\nclearInterval(polling)
+FE --> User : ✅ Thanh toán thành công!\nDeal auto-closed
+deactivate FE
+
+' ===== 5. AUDIT LOG =====
+== 5. Ghi nhật ký (Audit Log) ==
+
+User -> FE : Thao tác (Tạo/Sửa/Xóa)
+activate FE
+FE -> BFF : POST /api/strapi/audit-logs\n{action, entityId, entityName,\n performedByEmail, details}
+activate BFF
+BFF -> BE : POST /api/audit-logs
+activate BE
+BE -> DB : INSERT INTO audit_logs
+activate DB
+DB --> BE : Created
+deactivate DB
+BE --> BFF : OK
+deactivate BE
+BFF --> FE : Logged
+deactivate BFF
+deactivate FE
+
+@enduml

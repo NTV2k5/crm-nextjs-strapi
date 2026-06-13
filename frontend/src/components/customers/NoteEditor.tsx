@@ -1,8 +1,9 @@
 "use client";
 import { useState, useCallback } from "react";
-function debounce<T extends (...args: unknown[]) => void>(fn: T, ms: number): T {
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+function debounce<T extends (...args: any[]) => any>(fn: T, ms: number): (...args: Parameters<T>) => void {
   let timer: ReturnType<typeof setTimeout>;
-  return ((...args: unknown[]) => { clearTimeout(timer); timer = setTimeout(() => fn(...args), ms); }) as T;
+  return (...args: Parameters<T>) => { clearTimeout(timer); timer = setTimeout(() => fn(...args), ms); };
 }
 export default function NoteEditor({ customerId }: { customerId: string }) {
   const [content, setContent] = useState("");

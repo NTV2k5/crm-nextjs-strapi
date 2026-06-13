@@ -1,0 +1,222 @@
+@startuml CRM_Sequence_Deal_Payment
+!theme plain
+skinparam sequence {
+  ArrowColor #8B5CF6
+  ParticipantBorderColor #8B5CF6
+  ParticipantBackgroundColor #F5F3FF
+}
+
+title **SƠ ĐỒ TUẦN TỰ CHI TIẾT: QUẢN LÝ DEALS, HỢP ĐỒNG & THANH TOÁN**\n(Kanban Board + Contracts + SePay Auto-Reconciliation)
+
+actor "User\n(Admin/Manager/Sales)" as User
+participant "DealsContent\n/ BillingAction\n(React)" as FE
+participant "Next.js BFF\n/api/*" as BFF
+participant "Strapi API" as BE
+database "PostgreSQL" as DB
+participant "SePay\nGateway" as SePay
+
+== 1. Xem & Quản lý Deals (Table + Kanban) ==
+
+User -> FE : Truy cập /deals
+activate FE
+FE -> FE : useDeals() →\nRole-based query
+FE -> BFF : GET /deals?populate=*\n&sort=createdAt:desc
+activate BFF
+BFF -> BE : GET /api/deals?...
+activate BE
+BE -> DB : SELECT * FROM deals\nJOIN customers ON customer_id\nJOIN up_users ON assigned_to_id
+activate DB
+DB --> BE : Deal records
+deactivate DB
+BE --> BFF : {data: [...deals]}
+deactivate BE
+BFF --> FE : Deal list
+deactivate BFF
+FE -> FE : Group by stage →\n{survey, quote, negotiation,\n waiting_payment, closed, lost}
+FE --> User : Kanban Board (6 columns)\n+ Toggle Table View
+deactivate FE
+
+== 2. Tạo Deal mới ==
+
+User -> FE : Click "Thêm Deal" → DealModal
+activate FE
+User -> FE : Điền: title, value,\ncustomer, stage, assignedTo
+FE -> BFF : POST /deals\n{data: {title, value, stage,\n customer: customerId,\n assignedTo: userId}}
+activate BFF
+BFF -> BE : POST /api/deals
+activate BE
+BE -> DB : INSERT INTO deals
+activate DB
+DB --> BE : New deal
+deactivate DB
+BE --> BFF : {data: deal}
+deactivate BE
+BFF --> FE : Success
+deactivate BFF
+
+FE -> BFF : POST /audit-logs\n{action: 'CREATE_DEAL', ...}
+activate BFF
+BFF -> BE : POST /api/audit-logs
+BE -> DB : INSERT
+BFF --> FE : Logged
+deactivate BFF
+FE -> FE : refetch()
+FE --> User : ✅ Deal mới xuất hiện\ntrên Kanban board
+deactivate FE
+
+== 3. Kéo thả cập nhật Stage (Drag & Drop) ==
+
+User -> FE : Kéo card từ "Khảo sát"\nsang "Báo giá"
+activate FE
+FE -> BFF : PATCH /api/deals/{documentId}/stage\n{stage: "quote"}
+activate BFF
+BFF -> BFF : Read jwt from cookie
+BFF -> BE : PUT /api/deals/{documentId}\n{data: {stage: "quote"}}
+activate BE
+BE -> DB : UPDATE deals\nSET stage = 'quote'\nWHERE document_id = ?
+activate DB
+DB --> BE : Updated
+deactivate DB
+BE --> BFF : {data: updated}
+deactivate BE
+BFF --> FE : New stage confirmed
+deactivate BFF
+
+FE -> BFF : POST /audit-logs\n{action: 'UPDATE_DEAL_STAGE',\n details: 'survey → quote'}
+FE -> FE : Re-group deals by stage\nAnimate card movement
+FE --> User : ✅ Card đã chuyển cột\nToast notification
+deactivate FE
+
+== 4. Quản lý Hợp đồng ==
+
+User -> FE : Vào CustomerProfile\n→ Tab "Hợp đồng"
+activate FE
+FE -> FE : useContracts(customerId)
+FE -> BFF : GET /contracts\n?filters[customer][documentId][$eq]={id}\n&populate=*
+activate BFF
+BFF -> BE : GET /api/contracts?...
+activate BE
+BE -> DB : SELECT * FROM contracts\nWHERE customer_id = ?
+DB --> BE : Contracts
+deactivate BE
+BFF --> FE : Contract list
+deactivate BFF
+FE --> User : Danh sách hợp đồng
+deactivate FE
+
+User -> FE : Click "Thêm hợp đồng"\n→ ContractModal
+activate FE
+User -> FE : Điền contractNumber, title,\nvalue, dates, status, content
+alt Upload file hợp đồng
+  User -> FE : Chọn file (PDF/Image)
+  FE -> BFF : POST /upload\n(multipart/form-data)
+  activate BFF
+  BFF -> BE : POST /api/upload
+  BE -> DB : Store file metadata
+  BE --> BFF : {url: "/uploads/file.pdf"}
+  deactivate BFF
+  FE -> FE : Set fileUrl = response.url
+end
+FE -> BFF : POST /contracts\n{data: {contractNumber, title,\n value, status, fileUrl,\n customer: customerId,\n deal: dealId, content, ...}}
+activate BFF
+BFF -> BE : POST /api/contracts
+activate BE
+BE -> DB : INSERT INTO contracts
+DB --> BE : Created
+deactivate BE
+BFF --> FE : OK
+deactivate BFF
+
+FE -> BFF : POST /audit-logs\n{action: 'CREATE_CONTRACT'}
+FE -> FE : refetchContracts()
+FE --> User : ✅ Hợp đồng mới được tạo
+deactivate FE
+
+User -> FE : Click "In & Xuất PDF"
+activate FE
+FE -> FE : printContract()\n→ Open print dialog\n→ jsPDF generation
+FE --> User : 📄 PDF hợp đồng
+deactivate FE
+
+== 5. Tạo Hóa đơn & Thanh toán QR ==
+
+User -> FE : Tạo hóa đơn cho Deal
+activate FE
+FE -> BFF : POST /invoices\n{data: {orderCode: "DH12345",\n amount: 50000000,\n customerName, customerEmail,\n items: [...], status: 'pending',\n customer: custId, deal: dealId}}
+activate BFF
+BFF -> BE : POST /api/invoices
+activate BE
+BE -> DB : INSERT INTO invoices
+DB --> BE : Created
+deactivate BE
+BFF --> FE : {data: invoice}
+deactivate BFF
+FE --> User : Hóa đơn đã tạo\nNút "Thanh toán QR"
+deactivate FE
+
+== 6. Luồng thanh toán SePay (Real-time) ==
+
+User -> FE : Click "Thanh toán QR"
+activate FE
+FE -> FE : useSePayPayment.startPayment()
+FE -> FE : Generate QR URL:\nhttps://qr.sepay.vn/img?acc=...\n&bank=TPBank&amount=50000000\n&des=TT DH12345
+FE -> FE : Start countdown (10 phút)\nStart polling (mỗi 5 giây)
+FE --> User : 📱 Hiển thị QR Code\n⏱ Countdown timer
+
+loop Polling mỗi 5 giây (max 10 phút)
+  FE -> BFF : GET /invoices\n?filters[orderCode][$eq]=DH12345
+  activate BFF
+  BFF -> BE : GET /api/invoices?...
+  activate BE
+  BE -> DB : SELECT status FROM invoices\nWHERE order_code = 'DH12345'
+  DB --> BE : {status: 'pending'}
+  deactivate BE
+  BFF --> FE : Still pending
+  deactivate BFF
+  FE -> FE : pollCount++, continue
+end
+
+note over SePay : Khách hàng quét QR\nvà chuyển khoản thành công
+
+SePay -> BFF : POST /api/webhooks/sepay\n{id: 123, gateway: "TPBank",\n transferAmount: 50000000,\n content: "TT DH12345",\n referenceCode: "REF001"}
+activate BFF
+BFF -> BFF : Verify Authorization header\n== SEPAY_WEBHOOK_KEY
+BFF -> BFF : Extract orderCode:\ncontent.match(/DH[A-Z0-9]+/i)\n→ "DH12345"
+
+BFF -> BE : GET /api/invoices\n?filters[orderCode][$eq]=DH12345\n&populate=*
+activate BE
+BE -> DB : SELECT * FROM invoices\nWHERE order_code = 'DH12345'
+DB --> BE : Invoice (status='pending')
+deactivate BE
+
+BFF -> BE : PUT /api/invoices/{documentId}\n{data: {\n  status: 'paid',\n  paidAt: now(),\n  sePayTransactionId: '123',\n  sePayReferenceCode: 'REF001',\n  sePayGateway: 'TPBank',\n  paidAmount: 50000000\n}}
+activate BE
+BE -> DB : UPDATE invoices\nSET status='paid', paid_at=NOW()
+DB --> BE : Updated
+deactivate BE
+
+BFF -> BFF : Check invoice.deal exists?
+BFF -> BE : PUT /api/deals/{dealDocId}\n{data: {stage: 'closed'}}
+activate BE
+BE -> DB : UPDATE deals\nSET stage='closed'
+DB --> BE : Deal auto-closed ✅
+deactivate BE
+
+BFF --> SePay : 200 OK\n{success: true}
+deactivate BFF
+
+note over FE : Next poll cycle detects 'paid' status
+
+FE -> BFF : [Next Poll] GET /invoices?...
+activate BFF
+BFF -> BE : GET invoice
+BE -> DB : SELECT
+DB --> BE : {status: 'paid'} ✅
+BE --> BFF : Paid invoice
+deactivate BFF
+
+FE -> FE : setState('paid')\nclearInterval(polling)\nclearInterval(countdown)\nonSuccess() callback
+FE --> User : 🎉 THANH TOÁN THÀNH CÔNG!\nDeal tự động chuyển "Closed"
+deactivate FE
+
+@enduml

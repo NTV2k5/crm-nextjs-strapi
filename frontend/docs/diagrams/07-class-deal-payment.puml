@@ -1,0 +1,189 @@
+@startuml CRM_Class_DealPayment
+!theme plain
+skinparam class {
+  BackgroundColor #F5F3FF
+  BorderColor #8B5CF6
+  ArrowColor #64748B
+  HeaderBackgroundColor #EDE9FE
+}
+
+title **CLASS DIAGRAM CHI TIẾT: MODULE BÁN HÀNG, HÓA ĐƠN & THANH TOÁN**
+
+' ========== ENTITIES ==========
+class Deal << (E,#8B5CF6) Entity >> {
+  + id: Integer <<PK>>
+  + documentId: String <<Unique>>
+  + title: String <<Required>>
+  + value: Decimal <<Required>>
+  + stage: DealStage
+  + contractUrl: String
+  + createdAt: DateTime
+  + updatedAt: DateTime
+  --
+  + customer: Customer [M:1]
+  + assignedTo: User [M:1]
+  + contracts: Contract [1:M]
+}
+
+enum DealStage {
+  survey
+  quote
+  negotiation
+  waiting_payment
+  closed
+  lost
+}
+
+class Invoice << (E,#EF4444) Entity >> {
+  + id: Integer <<PK>>
+  + documentId: String <<Unique>>
+  + orderCode: String <<Required, Unique>>
+  + amount: Decimal <<Required>>
+  + description: String
+  + customerName: String <<Required>>
+  + customerEmail: String <<Required>>
+  + items: JSON <<Required>>
+  + status: InvoiceStatus
+  + paidAt: DateTime
+  + sePayTransactionId: String
+  + sePayReferenceCode: String
+  + sePayGateway: String
+  + paidAmount: Decimal
+  --
+  + customer: Customer [M:1]
+  + deal: Deal [M:1]
+}
+
+enum InvoiceStatus {
+  pending
+  paid
+}
+
+class Contract << (E,#EC4899) Entity >> {
+  + id: Integer <<PK>>
+  + documentId: String <<Unique>>
+  + contractNumber: String <<Required>>
+  + title: String <<Required>>
+  + value: Decimal <<Required>>
+  + startDate: Date
+  + endDate: Date
+  + signedDate: Date
+  + status: ContractStatus
+  + fileUrl: String
+  + fileName: String
+  + notes: Text
+  + content: Text
+  --
+  + customer: Customer [M:1]
+  + deal: Deal [M:1]
+  + createdBy: User [M:1]
+  + assignedTo: User [M:1]
+}
+
+enum ContractStatus {
+  draft
+  pending_signature
+  active
+  expired
+  terminated
+}
+
+' ========== PAYMENT ==========
+package "Payment Integration (SePay)" #FEF2F2 {
+
+  class SePayWebhookHandler << (S,#EF4444) API Route >> {
+    - SEPAY_WEBHOOK_KEY: String
+    --
+    + POST(request): Response
+    - validateAuth(header): Boolean
+    - extractOrderCode(content): String
+    - findInvoice(orderCode): Invoice
+    - updateInvoiceStatus(id): void
+    - updateDealStage(id): void
+  }
+
+  enum PaymentState {
+    idle
+    pending
+    paid
+    timeout
+    error
+  }
+
+  class "useSePayPayment" as USPP << (H,#EF4444) Hook >> {
+    + state: PaymentState
+    + qrImageUrl: String
+    + timeLeft: Number
+    + pollCount: Number
+    + error: String
+    --
+    + startPayment(): void
+    + cancelPayment(): void
+    - startCountdown(): void
+    - pollInvoiceStatus(): void
+  }
+}
+
+' ========== FRONTEND ==========
+package "Frontend Components" #F0F4FF {
+
+  class DealsContent << (P,#3B82F6) Page >> {
+    - deals: Deal[]
+    - viewMode: 'table' | 'kanban'
+    --
+    + handleCreateDeal(): void
+    + handleEditDeal(): void
+    + handleDeleteDeal(): void
+    + handleDragStageUpdate(): void
+  }
+
+  class DealModal << (C,#EC4899) Component >> {
+    - title: String
+    - value: Number
+    - stage: DealStage
+    - customer: Customer
+    --
+    + onSubmit(): void
+  }
+
+  class ContractModal << (C,#EC4899) Component >> {
+    - contractNumber: String
+    - title: String
+    - value: Number
+    - status: ContractStatus
+    --
+    + onSubmit(): void
+    + onUploadFile(): void
+  }
+
+  class BillingAction << (C,#EC4899) Component >> {
+    - invoice: Invoice
+    - paymentState: PaymentState
+    --
+    + createInvoice(): void
+    + initPayment(): void
+    + showQRCode(): void
+  }
+}
+
+' ========== RELATIONSHIPS ==========
+Deal --> DealStage : uses
+Invoice --> InvoiceStatus : uses
+Contract --> ContractStatus : uses
+USPP --> PaymentState : uses
+
+Deal "1" o-- "M" Contract : has
+Deal "M" --> "1" Customer : belongs to
+Invoice "M" --> "1" Customer : billed to
+Invoice "M" --> "1" Deal : for deal
+Contract "M" --> "1" Customer : for
+Contract "M" --> "1" Deal : linked to
+
+SePayWebhookHandler ..> Invoice : updates status
+SePayWebhookHandler ..> Deal : auto-close
+USPP ..> Invoice : polls
+BillingAction ..> USPP : uses
+DealsContent ..> DealModal : opens
+DealsContent ..> Deal : displays
+
+@enduml

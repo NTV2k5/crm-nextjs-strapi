@@ -8,6 +8,9 @@
     "build": "next build",
     "start": "next start",
     "lint": "next lint",
+    "tunnel": "npx ngrok http 3000",
+    "tunnel:url": "node -e \"setTimeout(()=>fetch('http://localhost:4040/api/tunnels').then(r=>r.json()).then(d=>console.log('\\n🌐 NGROK URL:',d.tunnels[0]?.public_url,'\\n📌 Webhook:',d.tunnels[0]?.public_url+'/api/webhooks/sepay','\\n')).catch(()=>console.log('\\n⚠️  Ngrok chưa sẵn sàng, mở http://localhost:4040 để xem URL\\n')),5000)\"",
+    "dev:tunnel": "concurrently \"npm run dev\" \"npm run tunnel\" \"npm run tunnel:url\"",
     "webhook": "npx tsx --env-file=.env.local server/webhook.ts",
     "webhook:start": "node server/start.mjs"
   },
@@ -23,7 +26,9 @@
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
     "framer-motion": "^12.38.0",
+    "html2canvas": "^1.4.1",
     "js-cookie": "^3.0.7",
+    "jspdf": "^4.2.1",
     "lucide-react": "^1.14.0",
     "next": "^16.2.6",
     "papaparse": "^5.5.3",
@@ -44,10 +49,12 @@
     "@types/react": "^19",
     "@types/react-dom": "^19",
     "autoprefixer": "^10.4.20",
+    "concurrently": "^9.2.1",
     "eslint": "^9",
     "postcss": "^8.4.49",
     "tailwindcss": "^4",
     "tsx": "^4.22.0",
-    "typescript": "^5"
+    "typescript": "^5",
+    "vitest": "^4.1.8"
   }
 }

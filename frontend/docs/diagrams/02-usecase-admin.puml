@@ -1,0 +1,126 @@
+@startuml CRM_UseCase_Admin
+!theme plain
+skinparam actorStyle awesome
+skinparam usecase {
+  BackgroundColor #FFF0F0
+  BorderColor #DC2626
+  ArrowColor #64748B
+}
+
+title **USE CASE CHI TIẾT: ADMIN (Quản trị viên)**\n(Toàn quyền hệ thống)
+
+left to right direction
+
+actor "Admin" as Admin #IndianRed
+
+rectangle "HỆ THỐNG CRM" {
+
+  package "Xác thực" {
+    usecase "Đăng nhập\n(Email / Google)" as UC_Login
+    usecase "Đăng xuất" as UC_Logout
+    usecase "Đổi mật khẩu" as UC_ChangePass
+    usecase "Quên & Đặt lại\nmật khẩu" as UC_ResetPass
+  }
+
+  package "Quản lý Khách hàng" {
+    usecase "Xem TẤT CẢ\nkhách hàng" as UC_ViewAll
+    usecase "Thêm khách hàng" as UC_AddCust
+    usecase "Sửa khách hàng" as UC_EditCust
+    usecase "Xoá khách hàng" as UC_DelCust
+    usecase "Tìm kiếm & Lọc" as UC_SearchCust
+    usecase "Nhập CSV (Import)" as UC_ImportCSV
+    usecase "Xuất CSV (Export)" as UC_ExportCSV
+    usecase "Xem hồ sơ chi tiết" as UC_ViewProfile
+  }
+
+  package "Quản lý Ghi chú" {
+    usecase "Thêm ghi chú" as UC_AddNote
+    usecase "Xem lịch sử ghi chú" as UC_ViewNotes
+  }
+
+  package "Quản lý Lịch hẹn" {
+    usecase "Tạo lịch hẹn" as UC_CreateReminder
+    usecase "Xem lịch (Calendar)" as UC_ViewCalendar
+    usecase "Hoàn thành lịch hẹn" as UC_CompleteReminder
+    usecase "Nhận thông báo\nreal-time" as UC_Notification
+  }
+
+  package "Quản lý Deals" {
+    usecase "Xem Deals\n(Table + Kanban)" as UC_ViewDeals
+    usecase "Tạo Deal" as UC_CreateDeal
+    usecase "Sửa Deal" as UC_EditDeal
+    usecase "Xoá Deal" as UC_DeleteDeal
+    usecase "Kéo thả\ncập nhật Stage" as UC_DragDeal
+  }
+
+  package "Quản lý Hợp đồng" {
+    usecase "Tạo hợp đồng" as UC_CreateContract
+    usecase "Sửa hợp đồng" as UC_EditContract
+    usecase "Xoá hợp đồng" as UC_DelContract
+    usecase "Upload file HĐ" as UC_UploadFile
+    usecase "In & Xuất PDF" as UC_PrintPDF
+  }
+
+  package "Hóa đơn & Thanh toán" {
+    usecase "Tạo hóa đơn" as UC_CreateInvoice
+    usecase "Thanh toán QR" as UC_PayQR
+  }
+
+  package "Báo cáo" {
+    usecase "Dashboard thống kê" as UC_Dashboard
+    usecase "Báo cáo doanh thu\n& Biểu đồ" as UC_Reports
+  }
+
+  package "**Quản trị hệ thống\n(Exclusive)**" #FFEBEE {
+    usecase "Quản lý người dùng\n(Thêm/Sửa/Xoá)" as UC_ManageUsers
+    usecase "Phân quyền RBAC\n(Admin/Manager/Sales)" as UC_RBAC
+    usecase "Xem Audit Log" as UC_AuditLog
+  }
+}
+
+Admin --> UC_Login
+Admin --> UC_Logout
+Admin --> UC_ChangePass
+Admin --> UC_ResetPass
+Admin --> UC_ViewAll
+Admin --> UC_AddCust
+Admin --> UC_EditCust
+Admin --> UC_DelCust
+Admin --> UC_SearchCust
+Admin --> UC_ImportCSV
+Admin --> UC_ExportCSV
+Admin --> UC_ViewProfile
+Admin --> UC_AddNote
+Admin --> UC_ViewNotes
+Admin --> UC_CreateReminder
+Admin --> UC_ViewCalendar
+Admin --> UC_CompleteReminder
+Admin --> UC_Notification
+Admin --> UC_ViewDeals
+Admin --> UC_CreateDeal
+Admin --> UC_EditDeal
+Admin --> UC_DeleteDeal
+Admin --> UC_DragDeal
+Admin --> UC_CreateContract
+Admin --> UC_EditContract
+Admin --> UC_DelContract
+Admin --> UC_UploadFile
+Admin --> UC_PrintPDF
+Admin --> UC_CreateInvoice
+Admin --> UC_PayQR
+Admin --> UC_Dashboard
+Admin --> UC_Reports
+Admin --> UC_ManageUsers
+Admin --> UC_RBAC
+Admin --> UC_AuditLog
+
+note right of UC_ManageUsers
+  Chỉ Admin có quyền:
+  ‣ Import CSV khách hàng
+  ‣ Xoá hợp đồng
+  ‣ CRUD người dùng
+  ‣ Phân quyền vai trò
+  ‣ Xem audit log
+end note
+
+@enduml

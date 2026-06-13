@@ -13,28 +13,32 @@ import {
 // ── Font registration ───────────────────────────────────────────────────────
 // Noto Sans TTF local — hỗ trợ tiếng Việt, ký hiệu ₫
 // File nằm tại /public/fonts/ (đã tải về bằng script)
-const FONT_BASE = `${window.location.origin}/fonts`;
+const isServer = typeof window === 'undefined';
+const origin = isServer 
+  ? (process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000') 
+  : window.location.origin;
+const FONT_BASE = `${origin}/fonts`;
 
 Font.register({
   family: 'NotoSans',
   fonts: [
     { src: `${FONT_BASE}/NotoSans-Regular.ttf`, fontWeight: 400 },
-    { src: `${FONT_BASE}/NotoSans-Bold.ttf`,    fontWeight: 700 },
+    { src: `${FONT_BASE}/NotoSans-Bold.ttf`, fontWeight: 700 },
   ],
 });
 
 // ── Colour palette ──────────────────────────────────────────────────────────
 const C = {
-  navy:     '#0f2b5b',
-  blue:     '#1a56db',
-  blueLight:'#dbeafe',
-  slate:    '#334155',
-  muted:    '#64748b',
+  navy: '#0f2b5b',
+  blue: '#1a56db',
+  blueLight: '#dbeafe',
+  slate: '#334155',
+  muted: '#64748b',
   hairline: '#e2e8f0',
-  bg:       '#f8fafc',
-  white:    '#ffffff',
-  green:    '#16a34a',
-  greenBg:  '#f0fdf4',
+  bg: '#f8fafc',
+  white: '#ffffff',
+  green: '#16a34a',
+  greenBg: '#f0fdf4',
 };
 
 // ── Styles ──────────────────────────────────────────────────────────────────
@@ -188,9 +192,9 @@ const S = StyleSheet.create({
   tableRowAlt: {
     backgroundColor: '#f8fafc',
   },
-  colDesc:  { width: '55%' },
-  colQty:   { width: '15%', textAlign: 'center' },
-  colUnit:  { width: '15%', textAlign: 'right' },
+  colDesc: { width: '55%' },
+  colQty: { width: '15%', textAlign: 'center' },
+  colUnit: { width: '15%', textAlign: 'right' },
   colTotal: { width: '15%', textAlign: 'right' },
   cellText: {
     fontSize: 9,
@@ -287,7 +291,7 @@ const S = StyleSheet.create({
 function fmtVND(n: number): string {
   // Intl format cho PDF: dùng "VND" text để tránh lỗi ký tự ₫
   return new Intl.NumberFormat('vi-VN', {
-    style:    'currency',
+    style: 'currency',
     currency: 'VND',
     // react-pdf render ₫ bị lỗi với Helvetica → dùng NotoSans nên OK
   }).format(n);
@@ -295,23 +299,23 @@ function fmtVND(n: number): string {
 
 // ── Props ────────────────────────────────────────────────────────────────────
 export interface InvoicePDFProps {
-  invoiceNumber:  string;
-  date:           string;
-  dueDate:        string;
-  customerName:   string;
-  customerEmail:  string;
-  dealTitle?:     string;
-  companyName?:   string;
+  invoiceNumber: string;
+  date: string;
+  dueDate: string;
+  customerName: string;
+  customerEmail: string;
+  dealTitle?: string;
+  companyName?: string;
   companyAddress?: string;
-  companyEmail?:  string;
+  companyEmail?: string;
   items: Array<{
     description: string;
-    quantity:    number;
-    price:       number;
+    quantity: number;
+    price: number;
   }>;
-  tax?:    number; // VAT amount in VND
+  tax?: number; // VAT amount in VND
   vatPct?: number; // display percentage e.g. 10
-  notes?:  string;
+  notes?: string;
   status?: 'PAID' | 'PENDING' | 'OVERDUE';
 }
 
@@ -323,20 +327,20 @@ export const InvoicePDF: React.FC<InvoicePDFProps> = ({
   customerName,
   customerEmail,
   dealTitle,
-  companyName   = 'ANTIGRAVITY CRM',
+  companyName = 'CRM NEXT',
   companyAddress = '123 Cong Nghe St, District 1, Ho Chi Minh City',
-  companyEmail  = 'contact@antigravity.ai',
+  companyEmail = 'contact@crm.next',
   items,
-  tax     = 0,
-  vatPct  = 0,
+  tax = 0,
+  vatPct = 0,
   notes,
-  status  = 'PAID',
+  status = 'PAID',
 }) => {
   const subtotal = items.reduce((s, i) => s + i.quantity * i.price, 0);
-  const total    = subtotal + tax;
+  const total = subtotal + tax;
 
   const statusColors: Record<string, { bg: string; border: string; text: string }> = {
-    PAID:    { bg: C.greenBg, border: '#86efac', text: C.green },
+    PAID: { bg: C.greenBg, border: '#86efac', text: C.green },
     PENDING: { bg: '#fefce8', border: '#fde047', text: '#854d0e' },
     OVERDUE: { bg: '#fef2f2', border: '#fca5a5', text: '#dc2626' },
   };
@@ -346,7 +350,7 @@ export const InvoicePDF: React.FC<InvoicePDFProps> = ({
     <Document
       title={`Invoice ${invoiceNumber}`}
       author={companyName}
-      creator="Antigravity CRM"
+      creator="CRM Next"
     >
       <Page size="A4" style={S.page}>
 

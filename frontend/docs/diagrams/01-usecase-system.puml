@@ -1,0 +1,247 @@
+@startuml CRM_UseCase_System
+!theme plain
+skinparam packageStyle rectangle
+skinparam actorStyle awesome
+skinparam usecase {
+  BackgroundColor #F0F4FF
+  BorderColor #3B82F6
+  ArrowColor #64748B
+}
+skinparam rectangle {
+  BackgroundColor #FAFBFF
+  BorderColor #CBD5E1
+}
+
+title **HỆ THỐNG CRM - SƠ ĐỒ USE CASE TOÀN HỆ THỐNG**\n(CRM Next.js + Strapi v5)
+
+left to right direction
+
+' ===== ACTORS =====
+actor "Admin\n(Quản trị viên)" as Admin #IndianRed
+actor "Manager\n(Quản lý)" as Manager #DarkOrange
+actor "Sales\n(Nhân viên bán hàng)" as Sales #MediumSeaGreen
+actor "SePay Gateway\n(Hệ thống thanh toán)" as SePay #RoyalBlue
+
+' ===== SYSTEM BOUNDARY =====
+rectangle "HỆ THỐNG CRM (CRM System)" {
+
+  ' --- Authentication Module ---
+  package "Xác thực & Phân quyền" as AuthPkg {
+    usecase "UC01: Đăng nhập\n(Email/Password)" as UC01
+    usecase "UC02: Đăng nhập Google\n(OAuth)" as UC02
+    usecase "UC03: Đăng ký tài khoản" as UC03
+    usecase "UC04: Đăng xuất" as UC04
+    usecase "UC05: Quên mật khẩu\n& Đặt lại mật khẩu" as UC05
+    usecase "UC06: Đổi mật khẩu" as UC06
+  }
+
+  ' --- Customer Management ---
+  package "Quản lý khách hàng" as CustPkg {
+    usecase "UC10: Xem danh sách\nkhách hàng" as UC10
+    usecase "UC11: Tìm kiếm & Lọc\nkhách hàng" as UC11
+    usecase "UC12: Thêm khách hàng mới" as UC12
+    usecase "UC13: Chỉnh sửa\nthông tin khách hàng" as UC13
+    usecase "UC14: Xoá khách hàng" as UC14
+    usecase "UC15: Xem hồ sơ\nchi tiết khách hàng" as UC15
+    usecase "UC16: Nhập liệu CSV\n(Import)" as UC16
+    usecase "UC17: Xuất dữ liệu CSV\n(Export)" as UC17
+  }
+
+  ' --- Note Management ---
+  package "Quản lý ghi chú" as NotePkg {
+    usecase "UC20: Thêm ghi chú\nkhách hàng" as UC20
+    usecase "UC21: Xem lịch sử\nghi chú" as UC21
+  }
+
+  ' --- Reminder/Calendar Management ---
+  package "Quản lý lịch hẹn" as ReminderPkg {
+    usecase "UC25: Tạo lịch hẹn\n/nhắc nhở" as UC25
+    usecase "UC26: Xem lịch hẹn\n(Calendar View)" as UC26
+    usecase "UC27: Hoàn thành\nlịch hẹn" as UC27
+    usecase "UC28: Nhận thông báo\nreal-time" as UC28
+  }
+
+  ' --- Deal/Sales Management ---
+  package "Quản lý bán hàng (Deals)" as DealPkg {
+    usecase "UC30: Xem danh sách\nDeals (Table View)" as UC30
+    usecase "UC31: Xem Kanban Board\n(Kéo thả)" as UC31
+    usecase "UC32: Tạo Deal mới" as UC32
+    usecase "UC33: Cập nhật giai đoạn\nDeal (Stage)" as UC33
+    usecase "UC34: Chỉnh sửa Deal" as UC34
+    usecase "UC35: Xoá Deal" as UC35
+  }
+
+  ' --- Contract Management ---
+  package "Quản lý hợp đồng" as ContractPkg {
+    usecase "UC40: Tạo hợp đồng mới" as UC40
+    usecase "UC41: Chỉnh sửa hợp đồng" as UC41
+    usecase "UC42: Xoá hợp đồng" as UC42
+    usecase "UC43: Upload file\nhợp đồng" as UC43
+    usecase "UC44: In & Xuất PDF\nhợp đồng" as UC44
+    usecase "UC45: Tải bản scan\nhợp đồng" as UC45
+  }
+
+  ' --- Invoice & Payment ---
+  package "Hóa đơn & Thanh toán" as InvoicePkg {
+    usecase "UC50: Tạo hóa đơn" as UC50
+    usecase "UC51: Xem hóa đơn" as UC51
+    usecase "UC52: Thanh toán QR\n(VietQR/SePay)" as UC52
+    usecase "UC53: Webhook đối soát\ntự động" as UC53
+  }
+
+  ' --- Reporting & Analytics ---
+  package "Báo cáo & Phân tích" as ReportPkg {
+    usecase "UC60: Xem Dashboard\nthống kê" as UC60
+    usecase "UC61: Xem báo cáo\ndoanh thu" as UC61
+    usecase "UC62: Xem biểu đồ\ntương tác" as UC62
+  }
+
+  ' --- Admin Module ---
+  package "Quản trị hệ thống" as AdminPkg {
+    usecase "UC70: Quản lý người dùng\n(CRUD)" as UC70
+    usecase "UC71: Phân quyền\nvai trò (RBAC)" as UC71
+    usecase "UC72: Xem Audit Log\n(Nhật ký hệ thống)" as UC72
+  }
+}
+
+' ===== RELATIONSHIPS =====
+' -- All roles authenticate --
+Admin --> UC01
+Admin --> UC02
+Admin --> UC04
+Admin --> UC06
+
+Manager --> UC01
+Manager --> UC02
+Manager --> UC04
+Manager --> UC06
+
+Sales --> UC01
+Sales --> UC02
+Sales --> UC04
+Sales --> UC06
+
+' -- Admin exclusive --
+Admin --> UC03
+Admin --> UC16
+Admin --> UC42
+Admin --> UC70
+Admin --> UC71
+Admin --> UC72
+
+' -- Admin & Manager share --
+Admin --> UC10
+Manager --> UC10
+Admin --> UC11
+Manager --> UC11
+Admin --> UC12
+Manager --> UC12
+Admin --> UC13
+Manager --> UC13
+Admin --> UC14
+Manager --> UC14
+Admin --> UC15
+Manager --> UC15
+Admin --> UC17
+Manager --> UC17
+
+Admin --> UC20
+Manager --> UC20
+Admin --> UC21
+Manager --> UC21
+
+Admin --> UC25
+Manager --> UC25
+Admin --> UC26
+Manager --> UC26
+Admin --> UC27
+Manager --> UC27
+Admin --> UC28
+Manager --> UC28
+
+Admin --> UC30
+Manager --> UC30
+Admin --> UC31
+Manager --> UC31
+Admin --> UC32
+Manager --> UC32
+Admin --> UC33
+Manager --> UC33
+Admin --> UC34
+Manager --> UC34
+Admin --> UC35
+Manager --> UC35
+
+Admin --> UC40
+Manager --> UC40
+Admin --> UC41
+Manager --> UC41
+Admin --> UC43
+Manager --> UC43
+Admin --> UC44
+Manager --> UC44
+Admin --> UC45
+Manager --> UC45
+
+Admin --> UC50
+Manager --> UC50
+Admin --> UC51
+Manager --> UC51
+Admin --> UC52
+Manager --> UC52
+
+Admin --> UC60
+Manager --> UC60
+Admin --> UC61
+Manager --> UC61
+Admin --> UC62
+Manager --> UC62
+
+' -- Sales (limited scope - assigned only) --
+Sales --> UC10
+Sales --> UC11
+Sales --> UC12
+Sales --> UC13
+Sales --> UC15
+Sales --> UC17
+Sales --> UC20
+Sales --> UC21
+Sales --> UC25
+Sales --> UC26
+Sales --> UC27
+Sales --> UC28
+Sales --> UC30
+Sales --> UC31
+Sales --> UC32
+Sales --> UC33
+Sales --> UC34
+Sales --> UC40
+Sales --> UC41
+Sales --> UC43
+Sales --> UC44
+Sales --> UC45
+Sales --> UC50
+Sales --> UC51
+Sales --> UC52
+Sales --> UC60
+
+' -- External System --
+SePay --> UC53
+
+' -- Includes & Extends --
+UC52 ..> UC53 : <<triggers>>
+UC53 ..> UC33 : <<auto-update\nDeal stage>>
+
+note right of Sales
+  Sales chỉ xem/thao tác
+  trên khách hàng được
+  **gán cho mình** (assignedTo)
+end note
+
+note right of SePay
+  Webhook tự động
+  đối soát thanh toán
+  và cập nhật trạng thái
+end note
+
+@enduml

@@ -1,0 +1,177 @@
+@startuml CRM_Class_CustomerModule
+!theme plain
+skinparam class {
+  BackgroundColor #F0F4FF
+  BorderColor #3B82F6
+  ArrowColor #64748B
+  HeaderBackgroundColor #DBEAFE
+}
+
+title **CLASS DIAGRAM CHI TIẾT: MODULE QUẢN LÝ KHÁCH HÀNG**
+
+' ========== ENTITIES ==========
+class Customer << (E,#3B82F6) Entity >> {
+  + id: Integer <<PK>>
+  + documentId: String <<Unique>>
+  + name: String <<Required>>
+  + email: String <<Required, Unique>>
+  + phone: String <<Required, Unique>>
+  + company: String
+  + status: CustomerStatus
+  + source: CustomerSource
+  + createdAt: DateTime
+  + updatedAt: DateTime
+  --
+  + assignedTo: User [M:1]
+  + notes: Note [1:M]
+  + deals: Deal [1:M]
+  + contracts: Contract [1:M]
+  + invoices: Invoice [1:M]
+  + reminders: Reminder [1:M]
+}
+
+enum CustomerStatus {
+  lead
+  consulting
+  closed
+  former
+}
+
+enum CustomerSource {
+  facebook
+  website
+  referral
+  other
+}
+
+class Note << (E,#10B981) Entity >> {
+  + id: Integer <<PK>>
+  + documentId: String <<Unique>>
+  + content: Text <<Required>>
+  + createdAt: DateTime
+  --
+  + customer: Customer [M:1]
+  + createdBy: User [M:1]
+}
+
+class Reminder << (E,#F59E0B) Entity >> {
+  + id: Integer <<PK>>
+  + documentId: String
+  + title: String <<Required>>
+  + dueDate: DateTime <<Required>>
+  + status: ReminderStatus
+  + priority: ReminderPriority
+  + type: ReminderType
+  + description: Text
+  --
+  + customer: Customer [M:1]
+  + assignedTo: User [M:1]
+}
+
+enum ReminderStatus {
+  pending
+  completed
+}
+
+enum ReminderPriority {
+  high
+  medium
+  low
+}
+
+enum ReminderType {
+  meeting
+  call
+  task
+  payment
+}
+
+' ========== FRONTEND COMPONENTS ==========
+package "Frontend Components" #F5F3FF {
+
+  class Dashboard << (P,#8B5CF6) Page >> {
+    - searchQuery: String
+    - statusFilter: String
+    - currentPage: Number
+    - ITEMS_PER_PAGE: 10
+    --
+    + handleAddNew(): void
+    + handleEdit(customer): void
+    + handleDelete(id): void
+    + exportCustomersCsv(): void
+    + getStatusBadge(status): JSX
+  }
+
+  class CustomerProfile << (P,#8B5CF6) Page >> {
+    - customer: any
+    - notes: Note[]
+    - reminders: Reminder[]
+    - noteContent: String
+    - reminderTitle: String
+    - reminderDate: String
+    --
+    + fetchCustomerData(): void
+    + fetchNotes(): void
+    + fetchReminders(): void
+    + handleAddNote(): void
+    + handleAddReminder(): void
+    + handleCompleteReminder(): void
+  }
+
+  class CustomerModal << (C,#EC4899) Component >> {
+    - open: Boolean
+    - initialData?: Customer
+    --
+    + onSubmit(data): void
+    + onOpenChange(isOpen): void
+  }
+
+  class ImportCsvModal << (C,#EC4899) Component >> {
+    - open: Boolean
+    --
+    + onFileUpload(file): void
+    + onImport(): void
+  }
+}
+
+' ========== HOOKS ==========
+package "Hooks & Services" #FEF3C7 {
+
+  class "useCustomers" as HC << (H,#F59E0B) Hook >> {
+    + customers: Customer[]
+    + loading: Boolean
+    + error: Error
+    --
+    + refetch(): void
+    - fetchCustomers(): void
+  }
+
+  class "useReminders" as HR << (H,#F59E0B) Hook >> {
+    + reminders: Reminder[]
+    + loading: Boolean
+    --
+    + refetch(): void
+  }
+}
+
+' ========== RELATIONSHIPS ==========
+Customer --> CustomerStatus : uses
+Customer --> CustomerSource : uses
+Reminder --> ReminderStatus : uses
+Reminder --> ReminderPriority : uses
+Reminder --> ReminderType : uses
+
+Customer "1" o-- "M" Note : contains
+Customer "1" o-- "M" Reminder : contains
+
+Dashboard ..> HC : uses
+Dashboard ..> CustomerModal : opens
+Dashboard ..> ImportCsvModal : opens
+CustomerProfile ..> Customer : displays
+CustomerProfile ..> Note : manages
+CustomerProfile ..> Reminder : manages
+CustomerProfile ..> CustomerModal : opens
+
+HC ..> Customer : fetches
+
+@enduml

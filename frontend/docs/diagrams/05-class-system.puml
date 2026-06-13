@@ -1,0 +1,296 @@
+@startuml CRM_Class_System
+!theme plain
+skinparam class {
+  BackgroundColor #FAFBFF
+  BorderColor #3B82F6
+  ArrowColor #64748B
+  HeaderBackgroundColor #EFF6FF
+}
+skinparam stereotypeCBackgroundColor #DBEAFE
+
+title **HỆ THỐNG CRM - SƠ ĐỒ CLASS TOÀN HỆ THỐNG**\n(Data Models + Services + Controllers)
+
+' ========== STRAPI BUILT-IN ==========
+package "Strapi Users & Permissions Plugin" #FFF8E1 {
+
+  class User << (E,#F59E0B) Entity >> {
+    + id: Integer <<PK>>
+    + documentId: String <<Unique>>
+    + username: String
+    + email: String <<Unique>>
+    + password: String <<Hashed>>
+    + confirmed: Boolean
+    + blocked: Boolean
+    + provider: String
+    + name: String
+    + createdAt: DateTime
+    + updatedAt: DateTime
+    --
+    + role: Role [M:1]
+  }
+
+  class Role << (E,#F59E0B) Entity >> {
+    + id: Integer <<PK>>
+    + name: String
+    + type: Enum {admin, manager, sales}
+    + description: String
+    --
+    + permissions: Permission [1:M]
+    + users: User [1:M]
+  }
+
+  class Permission << (E,#F59E0B) Entity >> {
+    + id: Integer <<PK>>
+    + action: String
+    + enabled: Boolean
+    --
+    + role: Role [M:1]
+  }
+}
+
+' ========== CRM ENTITIES ==========
+package "CRM Business Entities" #F0F4FF {
+
+  class Customer << (E,#3B82F6) Entity >> {
+    + id: Integer <<PK>>
+    + documentId: String <<Unique>>
+    + name: String <<Required>>
+    + email: String <<Required, Unique>>
+    + phone: String <<Required, Unique>>
+    + company: String
+    + status: Enum {lead, consulting, closed, former}
+    + source: Enum {facebook, website, referral, other}
+    + createdAt: DateTime
+    + updatedAt: DateTime
+    --
+    + assignedTo: User [M:1]
+    + notes: Note [1:M]
+    + deals: Deal [1:M]
+    + contracts: Contract [1:M]
+    + invoices: Invoice [1:M]
+    + reminders: Reminder [1:M]
+  }
+
+  class Deal << (E,#8B5CF6) Entity >> {
+    + id: Integer <<PK>>
+    + documentId: String <<Unique>>
+    + title: String <<Required>>
+    + value: Decimal <<Required>>
+    + stage: Enum {survey, quote, negotiation,
+    ..  waiting_payment, closed, lost}
+    + contractUrl: String
+    + createdAt: DateTime
+    + updatedAt: DateTime
+    --
+    + customer: Customer [M:1]
+    + assignedTo: User [M:1]
+    + contracts: Contract [1:M]
+  }
+
+  class Note << (E,#10B981) Entity >> {
+    + id: Integer <<PK>>
+    + documentId: String <<Unique>>
+    + content: Text <<Required>>
+    + createdAt: DateTime
+    + updatedAt: DateTime
+    --
+    + customer: Customer [M:1]
+    + createdBy: User [M:1]
+  }
+
+  class Reminder << (E,#F59E0B) Entity >> {
+    + id: Integer <<PK>>
+    + documentId: String <<Unique>>
+    + title: String <<Required>>
+    + dueDate: DateTime <<Required>>
+    + status: Enum {pending, completed}
+    + priority: Enum {high, medium, low}
+    + type: Enum {meeting, call, task, payment}
+    + description: Text
+    + createdAt: DateTime
+    + updatedAt: DateTime
+    --
+    + customer: Customer [M:1]
+    + assignedTo: User [M:1]
+  }
+
+  class Contract << (E,#EC4899) Entity >> {
+    + id: Integer <<PK>>
+    + documentId: String <<Unique>>
+    + contractNumber: String <<Required>>
+    + title: String <<Required>>
+    + value: Decimal <<Required>>
+    + startDate: Date
+    + endDate: Date
+    + signedDate: Date
+    + status: Enum {draft, pending_signature,
+    ..  active, expired, terminated}
+    + fileUrl: String
+    + fileName: String
+    + notes: Text
+    + content: Text
+    + createdAt: DateTime
+    + updatedAt: DateTime
+    --
+    + customer: Customer [M:1]
+    + deal: Deal [M:1]
+    + createdBy: User [M:1]
+    + assignedTo: User [M:1]
+  }
+
+  class Invoice << (E,#EF4444) Entity >> {
+    + id: Integer <<PK>>
+    + documentId: String <<Unique>>
+    + orderCode: String <<Required, Unique>>
+    + amount: Decimal <<Required>>
+    + description: String
+    + customerName: String <<Required>>
+    + customerEmail: String <<Required>>
+    + items: JSON <<Required>>
+    + status: Enum {pending, paid}
+    + paidAt: DateTime
+    + sePayTransactionId: String
+    + sePayReferenceCode: String
+    + sePayGateway: String
+    + paidAmount: Decimal
+    + createdAt: DateTime
+    + updatedAt: DateTime
+    --
+    + customer: Customer [M:1]
+    + deal: Deal [M:1]
+  }
+
+  class AuditLog << (E,#64748B) Entity >> {
+    + id: Integer <<PK>>
+    + documentId: String <<Unique>>
+    + action: String <<Required>>
+    + entityId: String
+    + entityName: String
+    + performedByEmail: String
+    + performedByUid: String
+    + details: Text
+    + metadata: JSON
+    + createdAt: DateTime
+    + updatedAt: DateTime
+  }
+}
+
+' ========== FRONTEND SERVICES ==========
+package "Frontend Application Layer" #F5F3FF {
+
+  class AuthContext << (S,#8B5CF6) Context >> {
+    + user: any
+    + userData: UserData
+    + loading: Boolean
+    --
+    + login(email, password): void
+    + registerUser(name, email, password, role): void
+    + signInWithGoogle(): void
+    + signOut(): void
+  }
+
+  class "useCustomers" as UseCustomers << (H,#3B82F6) Hook >> {
+    + customers: Customer[]
+    + loading: Boolean
+    + error: Error
+    --
+    + refetch(): void
+  }
+
+  class "useDeals" as UseDeals << (H,#8B5CF6) Hook >> {
+    + deals: Deal[]
+    + loading: Boolean
+    + error: Error
+    --
+    + refetch(): void
+  }
+
+  class "useReminders" as UseReminders << (H,#F59E0B) Hook >> {
+    + reminders: Reminder[]
+    + loading: Boolean
+    --
+    + refetch(): void
+  }
+
+  class "useContracts" as UseContracts << (H,#EC4899) Hook >> {
+    + contracts: Contract[]
+    + loading: Boolean
+    --
+    + refetch(): void
+  }
+
+  class "useSePayPayment" as UseSePayPayment << (H,#EF4444) Hook >> {
+    + state: PaymentState
+    + qrImageUrl: String
+    + timeLeft: Number
+    + pollCount: Number
+    + error: String
+    --
+    + startPayment(): void
+    + cancelPayment(): void
+  }
+
+  class "useUsers" as UseUsers << (H,#64748B) Hook >> {
+    + users: UserData[]
+    + loading: Boolean
+    --
+    + refetch(): void
+  }
+
+  class AuditService << (S,#64748B) Service >> {
+    + logAudit(params: AuditParams): void
+  }
+
+  class StrapiClient << (S,#3B82F6) Service >> {
+    + strapiFetch(path, options): Promise
+    + unwrap<T>(response): T
+  }
+}
+
+' ========== RELATIONSHIPS ==========
+' -- Strapi Built-in --
+User "M" --> "1" Role : belongs to
+Permission "M" --> "1" Role : granted to
+
+' -- Customer Relations --
+Customer "M" --> "1" User : assignedTo
+Customer "1" --> "M" Note : has notes
+Customer "1" --> "M" Deal : has deals
+Customer "1" --> "M" Contract : has contracts
+Customer "1" --> "M" Invoice : has invoices
+Customer "1" --> "M" Reminder : has reminders
+
+' -- Deal Relations --
+Deal "M" --> "1" Customer : belongs to
+Deal "M" --> "1" User : assignedTo
+Deal "1" --> "M" Contract : has contracts
+
+' -- Note Relations --
+Note "M" --> "1" Customer : about
+Note "M" --> "1" User : createdBy
+
+' -- Reminder Relations --
+Reminder "M" --> "1" Customer : for
+Reminder "M" --> "1" User : assignedTo
+
+' -- Contract Relations --
+Contract "M" --> "1" Customer : for
+Contract "M" --> "1" Deal : linked to
+Contract "M" --> "1" User : createdBy
+Contract "M" --> "1" User : assignedTo
+
+' -- Invoice Relations --
+Invoice "M" --> "1" Customer : billed to
+Invoice "M" --> "1" Deal : for deal
+
+' -- Frontend Layer --
+AuthContext ..> User : manages session
+UseCustomers ..> Customer : fetches
+UseDeals ..> Deal : fetches
+UseReminders ..> Reminder : fetches
+UseContracts ..> Contract : fetches
+UseSePayPayment ..> Invoice : polls status
+UseUsers ..> User : fetches
+AuditService ..> AuditLog : creates
+
+@enduml

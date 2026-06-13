@@ -1,0 +1,249 @@
+@startuml CRM_ERD
+!theme plain
+skinparam linetype ortho
+skinparam class {
+  BackgroundColor #FAFBFF
+  BorderColor #3B82F6
+  ArrowColor #64748B
+  HeaderBackgroundColor #EFF6FF
+}
+
+title **HỆ THỐNG CRM - SƠ ĐỒ ERD (Entity Relationship Diagram)**\nPostgreSQL Database Schema
+
+' ========== STRAPI SYSTEM TABLES ==========
+package "Strapi System Tables" #FFF8E1 {
+
+  entity "up_users" as users {
+    * **id** : integer <<PK, AUTO_INCREMENT>>
+    --
+    username : varchar(255)
+    email : varchar(255) <<UNIQUE, NOT NULL>>
+    password : varchar(255) <<NOT NULL>>
+    provider : varchar(255)
+    confirmed : boolean
+    blocked : boolean
+    name : varchar(255)
+    created_at : timestamp
+    updated_at : timestamp
+    --
+    # role_id : integer <<FK → up_roles.id>>
+  }
+
+  entity "up_roles" as roles {
+    * **id** : integer <<PK, AUTO_INCREMENT>>
+    --
+    name : varchar(255) <<NOT NULL>>
+    type : varchar(255) <<NOT NULL>>
+    ..{admin | manager | sales}
+    description : text
+    created_at : timestamp
+    updated_at : timestamp
+  }
+
+  entity "up_permissions" as permissions {
+    * **id** : integer <<PK, AUTO_INCREMENT>>
+    --
+    action : varchar(255) <<NOT NULL>>
+    created_at : timestamp
+    updated_at : timestamp
+    --
+    # role_id : integer <<FK → up_roles.id>>
+  }
+
+  entity "files" as files {
+    * **id** : integer <<PK, AUTO_INCREMENT>>
+    --
+    name : varchar(255)
+    url : varchar(255)
+    mime : varchar(255)
+    size : decimal
+    provider : varchar(255)
+    hash : varchar(255)
+    ext : varchar(255)
+    created_at : timestamp
+    updated_at : timestamp
+  }
+}
+
+' ========== CRM BUSINESS TABLES ==========
+package "CRM Business Tables" #F0F4FF {
+
+  entity "customers" as customers {
+    * **id** : integer <<PK, AUTO_INCREMENT>>
+    * **document_id** : varchar(255) <<UNIQUE>>
+    --
+    name : varchar(255) <<NOT NULL>>
+    email : varchar(255) <<UNIQUE, NOT NULL>>
+    phone : varchar(255) <<UNIQUE, NOT NULL>>
+    company : varchar(255)
+    status : varchar(50) <<NOT NULL>>
+    ..{lead | consulting | closed | former}
+    source : varchar(50) <<NOT NULL>>
+    ..{facebook | website | referral | other}
+    created_at : timestamp
+    updated_at : timestamp
+    published_at : timestamp
+    --
+    # assigned_to_id : integer <<FK → up_users.id>>
+  }
+
+  entity "deals" as deals {
+    * **id** : integer <<PK, AUTO_INCREMENT>>
+    * **document_id** : varchar(255) <<UNIQUE>>
+    --
+    title : varchar(255) <<NOT NULL>>
+    value : decimal(10,2) <<NOT NULL>>
+    stage : varchar(50) <<NOT NULL>>
+    ..{survey | quote | negotiation |
+    ..waiting_payment | closed | lost}
+    contract_url : varchar(255)
+    created_at : timestamp
+    updated_at : timestamp
+    published_at : timestamp
+    --
+    # customer_id : integer <<FK → customers.id>>
+    # assigned_to_id : integer <<FK → up_users.id>>
+  }
+
+  entity "notes" as notes {
+    * **id** : integer <<PK, AUTO_INCREMENT>>
+    * **document_id** : varchar(255) <<UNIQUE>>
+    --
+    content : text <<NOT NULL>>
+    created_at : timestamp
+    updated_at : timestamp
+    published_at : timestamp
+    --
+    # customer_id : integer <<FK → customers.id>>
+    # created_by_id : integer <<FK → up_users.id>>
+  }
+
+  entity "reminders" as reminders {
+    * **id** : integer <<PK, AUTO_INCREMENT>>
+    * **document_id** : varchar(255) <<UNIQUE>>
+    --
+    title : varchar(255) <<NOT NULL>>
+    due_date : timestamp <<NOT NULL>>
+    status : varchar(50) <<NOT NULL>>
+    ..{pending | completed}
+    priority : varchar(50)
+    ..{high | medium | low}
+    type : varchar(50)
+    ..{meeting | call | task | payment}
+    description : text
+    created_at : timestamp
+    updated_at : timestamp
+    published_at : timestamp
+    --
+    # customer_id : integer <<FK → customers.id>>
+    # assigned_to_id : integer <<FK → up_users.id>>
+  }
+
+  entity "contracts" as contracts {
+    * **id** : integer <<PK, AUTO_INCREMENT>>
+    * **document_id** : varchar(255) <<UNIQUE>>
+    --
+    contract_number : varchar(255) <<NOT NULL>>
+    title : varchar(255) <<NOT NULL>>
+    value : decimal(10,2) <<NOT NULL>>
+    start_date : date
+    end_date : date
+    signed_date : date
+    status : varchar(50) <<NOT NULL>>
+    ..{draft | pending_signature |
+    ..active | expired | terminated}
+    file_url : varchar(255)
+    file_name : varchar(255)
+    notes : text
+    content : text
+    created_at : timestamp
+    updated_at : timestamp
+    published_at : timestamp
+    --
+    # customer_id : integer <<FK → customers.id>>
+    # deal_id : integer <<FK → deals.id>>
+    # created_by_id : integer <<FK → up_users.id>>
+    # assigned_to_id : integer <<FK → up_users.id>>
+  }
+
+  entity "invoices" as invoices {
+    * **id** : integer <<PK, AUTO_INCREMENT>>
+    * **document_id** : varchar(255) <<UNIQUE>>
+    --
+    order_code : varchar(255) <<UNIQUE, NOT NULL>>
+    amount : decimal(10,2) <<NOT NULL>>
+    description : varchar(255)
+    customer_name : varchar(255) <<NOT NULL>>
+    customer_email : varchar(255) <<NOT NULL>>
+    items : jsonb <<NOT NULL>>
+    status : varchar(50) <<NOT NULL>>
+    ..{pending | paid}
+    paid_at : timestamp
+    se_pay_transaction_id : varchar(255)
+    se_pay_reference_code : varchar(255)
+    se_pay_gateway : varchar(255)
+    paid_amount : decimal(10,2)
+    created_at : timestamp
+    updated_at : timestamp
+    published_at : timestamp
+    --
+    # customer_id : integer <<FK → customers.id>>
+    # deal_id : integer <<FK → deals.id>>
+  }
+
+  entity "audit_logs" as audit_logs {
+    * **id** : integer <<PK, AUTO_INCREMENT>>
+    * **document_id** : varchar(255) <<UNIQUE>>
+    --
+    action : varchar(255) <<NOT NULL>>
+    entity_id : varchar(255)
+    entity_name : varchar(255)
+    performed_by_email : varchar(255)
+    performed_by_uid : varchar(255)
+    details : text
+    metadata : jsonb
+    created_at : timestamp
+    updated_at : timestamp
+    published_at : timestamp
+  }
+}
+
+' ========== RELATIONSHIPS ==========
+' -- Strapi Internal --
+users }|--|| roles : "role_id\n(M:1)"
+permissions }|--|| roles : "role_id\n(M:1)"
+
+' -- Customer is the central entity --
+customers }|--o| users : "assigned_to_id\n(M:1)"
+
+deals }|--|| customers : "customer_id\n(M:1)"
+deals }|--o| users : "assigned_to_id\n(M:1)"
+
+notes }|--|| customers : "customer_id\n(M:1)"
+notes }|--o| users : "created_by_id\n(M:1)"
+
+reminders }|--|| customers : "customer_id\n(M:1)"
+reminders }|--o| users : "assigned_to_id\n(M:1)"
+
+contracts }|--|| customers : "customer_id\n(M:1)"
+contracts }|--o| deals : "deal_id\n(M:1)"
+contracts }|--o| users : "created_by_id\n(M:1)"
+contracts }|--o| users : "assigned_to_id\n(M:1)"
+
+invoices }|--|| customers : "customer_id\n(M:1)"
+invoices }|--o| deals : "deal_id\n(M:1)"
+
+note bottom of customers
+  **Bảng trung tâm** của hệ thống CRM.
+  Mọi entity đều liên kết về Customer.
+  Sử dụng document_id cho API routing.
+end note
+
+note bottom of audit_logs
+  Không có FK trực tiếp.
+  Lưu trữ entity_id và
+  performed_by_uid dạng String
+  cho tính linh hoạt.
+end note
+
+@enduml
