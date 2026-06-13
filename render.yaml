@@ -3,6 +3,7 @@ databases:
     plan: free
     databaseName: crm_strapi
     user: strapi
+    region: singapore
 
 services:
   - type: web
