@@ -80,7 +80,7 @@ export const BillingAction: React.FC<BillingActionProps> = ({
         async (_tx) => {
           setStep('paid');
           if (countdownRef.current) clearInterval(countdownRef.current);
-          toast.success('💰 Thanh toán thành công!');
+          toast('💰 Thanh toán thành công!', { icon: null });
 
           // Deal stage, email and contract are now safely handled by the SePay Webhook.
 
@@ -127,7 +127,7 @@ export const BillingAction: React.FC<BillingActionProps> = ({
         customerEmail,
         dealTitle,
         items: invoiceItems,
-      });
+      }, true);
 
       toast.success(`Hóa đơn ${result.invoiceNumber} đã xuất thành công! (Email được gửi tự động từ Server)`);
       setStep('done');

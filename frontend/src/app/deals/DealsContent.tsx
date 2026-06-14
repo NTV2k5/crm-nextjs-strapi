@@ -34,17 +34,26 @@ export default function DealsContent() {
   const { user, userData } = useAuth();
   const { theme, toggleTheme } = useTheme();
   const [mounted, setMounted] = useState(false);
+  const [localDeals, setLocalDeals] = useState<Deal[]>([]);
+  const [isInitialLoading, setIsInitialLoading] = useState(true);
 
   useEffect(() => {
     setMounted(true);
   }, []);
+
+  useEffect(() => {
+    if (deals.length > 0 || !loading) {
+      setLocalDeals(deals);
+      setIsInitialLoading(false);
+    }
+  }, [deals, loading]);
   
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingDeal, setEditingDeal] = useState<Deal | undefined>();
   const [searchQuery, setSearchQuery] = useState('');
   const [viewMode, setViewMode] = useState<'kanban' | 'table'>('kanban');
 
-  const filteredDeals = deals.filter(d => {
+  const filteredDeals = localDeals.filter(d => {
     const q = searchQuery.toLowerCase();
     const customerName = d.customer?.name || '';
     return d.title.toLowerCase().includes(q) || customerName.toLowerCase().includes(q);
@@ -69,14 +78,26 @@ export default function DealsContent() {
     if (!destination) return;
     if (destination.droppableId === source.droppableId && destination.index === source.index) return;
 
-    const targetStage = destination.droppableId;
-    const deal = deals.find(d => d.id === draggableId || d.documentId === draggableId);
+    const targetStage = destination.droppableId as Deal['stage'];
+    const deal = localDeals.find(d => d.id === draggableId || d.documentId === draggableId);
     const dealId = deal?.documentId || draggableId;
 
     if (deal?.stage === 'closed' && userData?.role !== 'admin') {
       toast.error('Deal đã chốt không thể hoàn tác. Vui lòng liên hệ Admin.');
       return;
     }
+
+    // Backup current state for revert in case of error
+    const originalDeals = [...localDeals];
+
+    // Optimistically update the UI stage
+    const updatedDeals = localDeals.map(d => {
+      if (d.documentId === dealId || d.id === dealId) {
+        return { ...d, stage: targetStage };
+      }
+      return d;
+    });
+    setLocalDeals(updatedDeals);
     
     try {
       // Update deal stage in Strapi
@@ -147,6 +168,8 @@ export default function DealsContent() {
 
       refetch();
     } catch (error: any) {
+      // Revert to original deals on error
+      setLocalDeals(originalDeals);
       toast.error('Lỗi khi chuyển trạng thái: ' + error.message);
     }
   };
@@ -155,7 +178,7 @@ export default function DealsContent() {
     return new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(amount);
   };
 
-  if (loading || !mounted) {
+  if (isInitialLoading || !mounted) {
     return (
       <div className="flex h-screen items-center justify-center bg-background">
         <Loader2 className="h-8 w-8 animate-spin text-primary" />
@@ -212,7 +235,7 @@ export default function DealsContent() {
             />
           </div>
           <div className="text-xs font-semibold text-muted-foreground uppercase tracking-widest">
-            Đang hiển thị: <span className="text-primary font-extrabold">{filteredDeals.length} / {deals.length} deals</span>
+            Đang hiển thị: <span className="text-primary font-extrabold">{filteredDeals.length} / {localDeals.length} deals</span>
           </div>
         </div>
 
