@@ -305,6 +305,7 @@ export interface InvoicePDFProps {
   customerName: string;
   customerEmail: string;
   dealTitle?: string;
+  salespersonName?: string;
   companyName?: string;
   companyAddress?: string;
   companyEmail?: string;
@@ -327,6 +328,7 @@ export const InvoicePDF: React.FC<InvoicePDFProps> = ({
   customerName,
   customerEmail,
   dealTitle,
+  salespersonName,
   companyName = 'CRM NEXT',
   companyAddress = '123 Cong Nghe St, District 1, Ho Chi Minh City',
   companyEmail = 'contact@crm.next',
@@ -382,6 +384,11 @@ export const InvoicePDF: React.FC<InvoicePDFProps> = ({
               {dealTitle && (
                 <Text style={[S.clientEmail, { marginTop: 4, color: C.blue }]}>
                   Du an: {dealTitle}
+                </Text>
+              )}
+              {salespersonName && (
+                <Text style={[S.clientEmail, { marginTop: 4 }]}>
+                  Nhan vien phu trach: {salespersonName}
                 </Text>
               )}
             </View>

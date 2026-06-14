@@ -93,7 +93,7 @@ export async function POST(request: Request) {
     // Strategy A: Match by orderCode in content (direct bank transfer)
     if (orderCode) {
       const invoicesRes = await fetch(
-        `${STRAPI_API_URL}/api/invoices?filters[orderCode][$eq]=${orderCode}&populate=*`,
+        `${STRAPI_API_URL}/api/invoices?filters[orderCode][$eq]=${orderCode}&populate[customer]=*&populate[deal][populate][assignedTo]=*`,
         { headers }
       );
 
@@ -115,7 +115,7 @@ export async function POST(request: Request) {
     if (!invoice) {
       console.log(`[SePay Webhook] No direct orderCode match. Trying fallback: amount=${transferAmount}, status=pending`);
       const twentyFourHoursAgo = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
-      const fallbackUrl = `${STRAPI_API_URL}/api/invoices?filters[status][$eq]=pending&filters[amount][$eq]=${transferAmount}&filters[createdAt][$gte]=${twentyFourHoursAgo}&populate=*&sort=createdAt:desc&pagination[limit]=1`;
+      const fallbackUrl = `${STRAPI_API_URL}/api/invoices?filters[status][$eq]=pending&filters[amount][$eq]=${transferAmount}&filters[createdAt][$gte]=${twentyFourHoursAgo}&populate[customer]=*&populate[deal][populate][assignedTo]=*&sort=createdAt:desc&pagination[limit]=1`;
       
       const fallbackRes = await fetch(fallbackUrl, { headers });
 
@@ -237,6 +237,8 @@ export async function POST(request: Request) {
           }));
         }
 
+        const salespersonName = deal?.assignedTo?.name || deal?.assignedTo?.username || '';
+
         const pdfBuffer = await renderToBuffer(
           React.createElement(InvoicePDF, {
             invoiceNumber: invoiceNumber,
@@ -245,6 +247,7 @@ export async function POST(request: Request) {
             customerName: invoice.customerName || 'Khách hàng',
             customerEmail: invoice.customerEmail,
             dealTitle: deal?.title || invoice.description,
+            salespersonName: salespersonName,
             items: invoiceItems,
             status: "PAID"
           }) as any

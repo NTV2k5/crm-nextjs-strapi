@@ -252,6 +252,8 @@ export function DealModal({ initialData, open, onOpenChange, trigger, refetch }:
 
   // Lấy thông tin khách hàng cho BillingAction
   const selectedCustomer = customers.find(c => c.documentId === (initialData?.customer?.documentId || selectedCustomerId));
+  const assignedUser = users.find(u => String(u.id) === String(selectedAssignedTo));
+  const salespersonName = assignedUser?.name || initialData?.assignedTo?.username || userData?.name || '';
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -388,6 +390,7 @@ export function DealModal({ initialData, open, onOpenChange, trigger, refetch }:
                 dealId={initialData.documentId}
                 dealTitle={initialData.title}
                 amount={initialData.value}
+                salespersonName={salespersonName}
                 onPaymentComplete={handlePaymentComplete}
               />
             )}

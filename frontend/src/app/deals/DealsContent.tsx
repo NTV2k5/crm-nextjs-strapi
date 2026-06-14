@@ -42,7 +42,7 @@ export default function DealsContent() {
   }, []);
 
   useEffect(() => {
-    if (deals.length > 0 || !loading) {
+    if (!loading) {
       setLocalDeals(deals);
       setIsInitialLoading(false);
     }

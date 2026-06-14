@@ -16,6 +16,7 @@ export interface BillingDetails {
   dealId?: string;
   customerId?: string;
   items: PaymentItem[];
+  salespersonName?: string;
 }
 
 export interface PaymentSession {
@@ -177,6 +178,7 @@ export const BillingWorkflow = {
         customerName={details.customerName}
         customerEmail={details.customerEmail}
         dealTitle={details.dealTitle}
+        salespersonName={details.salespersonName}
         items={invoiceItems}
         status="PAID"
       />

@@ -17,6 +17,8 @@ interface BillingActionProps {
   dealId?: string;
   /** Số tiền thanh toán (VND) — lấy từ deal.value */
   amount?: number;
+  /** Tên nhân viên phụ trách */
+  salespersonName?: string;
   /** Callback khi thanh toán hoàn tất — parent nên refetch data */
   onPaymentComplete?: () => void;
 }
@@ -25,7 +27,7 @@ type Step = 'idle' | 'qr_shown' | 'paid' | 'finalizing' | 'done' | 'timeout';
 
 
 export const BillingAction: React.FC<BillingActionProps> = ({
-  customerName, customerEmail, dealId, dealTitle, amount, onPaymentComplete,
+  customerName, customerEmail, dealId, dealTitle, amount, salespersonName, onPaymentComplete,
 }) => {
   const [loading,  setLoading]  = useState(false);
   const [step,     setStep]     = useState<Step>('idle');
@@ -126,6 +128,7 @@ export const BillingAction: React.FC<BillingActionProps> = ({
         customerName,
         customerEmail,
         dealTitle,
+        salespersonName,
         items: invoiceItems,
       }, true);
 
