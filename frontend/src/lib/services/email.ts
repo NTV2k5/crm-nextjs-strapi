@@ -105,39 +105,47 @@ export async function sendPaymentRequestEmail(
  * Sends an Invoice email with PDF attachment after payment is confirmed.
  */
 export async function sendInvoiceEmail(to: string, invoiceNumber: string, pdfBlob: Blob) {
-  const arrayBuffer = await pdfBlob.arrayBuffer();
-  let binary = '';
-  const bytes = new Uint8Array(arrayBuffer);
-  const len = bytes.byteLength;
-  for (let i = 0; i < len; i++) {
-    binary += String.fromCharCode(bytes[i]);
-  }
-  const base64Content = window.btoa(binary);
+  try {
+    const base64Content = await new Promise<string>((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        const result = reader.result as string;
+        // Extract base64 content from DataURL: "data:application/pdf;base64,..."
+        const base64 = result.split(',')[1];
+        resolve(base64);
+      };
+      reader.onerror = () => reject(new Error('Failed to read PDF blob as Base64'));
+      reader.readAsDataURL(pdfBlob);
+    });
 
-  return sendEmail({
-    to,
-    subject: `📄 Hóa đơn thanh toán #${invoiceNumber}`,
-    html: `
-      <div style="font-family: 'Segoe UI', sans-serif; max-width: 560px; margin: 0 auto; background: #f8fafc; padding: 32px 24px; border-radius: 12px; color: #334155;">
-        <h2 style="margin: 0 0 4px; font-size: 20px; color: #0f172a;">Cảm ơn bạn đã thanh toán! 🎉</h2>
-        <p style="margin: 0 0 24px; color: #64748b; font-size: 14px;">
-          Hóa đơn <strong>#${invoiceNumber}</strong> đã được tạo thành công và đính kèm trong email này.
-        </p>
-        <div style="background: #f0fdf4; border-radius: 8px; padding: 14px 16px; margin-bottom: 24px; border-left: 4px solid #22c55e;">
-          <p style="margin: 0; font-size: 13px; color: #166534;">
-            ✅ Thanh toán xác nhận thành công. Vui lòng lưu giữ hóa đơn để đối chiếu nếu cần.
+    return sendEmail({
+      to,
+      subject: `📄 Hóa đơn thanh toán #${invoiceNumber}`,
+      html: `
+        <div style="font-family: 'Segoe UI', sans-serif; max-width: 560px; margin: 0 auto; background: #f8fafc; padding: 32px 24px; border-radius: 12px; color: #334155;">
+          <h2 style="margin: 0 0 4px; font-size: 20px; color: #0f172a;">Cảm ơn bạn đã thanh toán! 🎉</h2>
+          <p style="margin: 0 0 24px; color: #64748b; font-size: 14px;">
+            Hóa đơn <strong>#${invoiceNumber}</strong> đã được tạo thành công và đính kèm trong email này.
           </p>
+          <div style="background: #f0fdf4; border-radius: 8px; padding: 14px 16px; margin-bottom: 24px; border-left: 4px solid #22c55e;">
+            <p style="margin: 0; font-size: 13px; color: #166534;">
+              ✅ Thanh toán xác nhận thành công. Vui lòng lưu giữ hóa đơn để đối chiếu nếu cần.
+            </p>
+          </div>
+          <p style="font-size: 13px; color: #64748b;">Trân trọng,<br/>Đội ngũ CRM</p>
+          <hr style="border: none; border-top: 1px solid #e2e8f0; margin: 20px 0;" />
+          <p style="font-size: 11px; color: #94a3b8;">Email này được gửi tự động từ hệ thống CRM.</p>
         </div>
-        <p style="font-size: 13px; color: #64748b;">Trân trọng,<br/>Đội ngũ CRM</p>
-        <hr style="border: none; border-top: 1px solid #e2e8f0; margin: 20px 0;" />
-        <p style="font-size: 11px; color: #94a3b8;">Email này được gửi tự động từ hệ thống CRM.</p>
-      </div>
-    `,
-    attachments: [
-      {
-        filename: `${invoiceNumber}.pdf`,
-        content: base64Content,
-      }
-    ],
-  });
+      `,
+      attachments: [
+        {
+          filename: `${invoiceNumber}.pdf`,
+          content: base64Content,
+        }
+      ],
+    });
+  } catch (err: any) {
+    console.error('[Email] Base64 encoding error:', err);
+    return { success: false, error: err.message || 'Base64 encoding failed' };
+  }
 }

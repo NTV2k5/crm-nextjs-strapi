@@ -183,6 +183,7 @@ export const BillingWorkflow = {
     ).toBlob();
 
     let emailSent = false;
+    let emailError: string | null = null;
     if (sendEmail) {
       const emailResult = await sendInvoiceEmail(
         details.customerEmail,
@@ -190,6 +191,11 @@ export const BillingWorkflow = {
         blob
       );
       emailSent = emailResult.success;
+      if (!emailResult.success) {
+        emailError = typeof emailResult.error === 'object' 
+          ? JSON.stringify(emailResult.error) 
+          : String(emailResult.error || 'Unknown error');
+      }
     }
 
     return {
@@ -197,6 +203,7 @@ export const BillingWorkflow = {
       invoiceNumber,
       pdfBlob: blob,
       emailSent,
+      emailError,
     };
   },
 };

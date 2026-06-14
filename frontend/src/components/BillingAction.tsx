@@ -129,7 +129,12 @@ export const BillingAction: React.FC<BillingActionProps> = ({
         items: invoiceItems,
       }, true);
 
-      toast.success(`Hóa đơn ${result.invoiceNumber} đã xuất thành công! (Email được gửi tự động từ Server)`);
+      if (result.emailSent) {
+        toast.success(`Hóa đơn ${result.invoiceNumber} đã xuất thành công và gửi tới email ${customerEmail}!`);
+      } else {
+        const errorMsg = result.emailError ? `: ${result.emailError}` : '';
+        toast.warning(`Hóa đơn ${result.invoiceNumber} đã xuất thành công (nhưng không gửi được email${errorMsg}). Vui lòng kiểm tra cấu hình Resend.`);
+      }
       setStep('done');
 
       // Notify parent to refresh deal data (stage should now be 'closed')
